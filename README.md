@@ -100,16 +100,6 @@ bash ~/RP-agent/launch.sh
 
 或 `python3 ~/RP-agent/play.py`。
 
-桌面双击会开**两个窗口**（`play.py --attach` 是剧情窗客户端，不是第二个 agent 进程）：
-
-| 窗口 | 内容 | 输入 |
-|---|---|---|
-| ① GM 控制台（`agent.py`） | 全量输出：工具调用 / 状态行 / 思维链 / Story | 可直接输入 |
-| ② 剧情窗（`play.py --attach`） | 只显示 Story 与 `[可选行动]` | 也能输入，会转交给 GM |
-
-`rp/<RP>/` 存档只有窗口①那个 agent 进程会写，窗口②不落盘。
-环境无 tmux/konsole 或设 `RP_AGENT_1WIN=1` 时自动退回单窗口 `python3 play.py --quiet`。
-
 API：任意 OpenAI 兼容 `/v1/chat/completions`。三选一注入。
 
 ```bash
