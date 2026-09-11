@@ -109,19 +109,19 @@ flowchart TD
 | 玩家选项 | 880-985 | _OPT_MARK/_split_options/_print_options（只展示，不入 Canon） |
 | 主循环 | 986-末尾 | main() |
 
-### story.py（325 行）
+### story.py（333 行）
 
 | 区域 | 行 | 内容 |
 |---|---|---|
-| 写作规范（统一整块 · v3.1） | 13-167 | HAGENT_ASSETS_SRC / `HAGENT_ASSETS_SHA256`（**唯一**）/ `HAGENT_ASSETS`（五层 CORE/FLOW/STYLE[命中即改]/REFERENCE/CHECK + 末尾落笔提醒；纯写作语言，无架构/元语句） |
-| verify | 168 | 单一 SHA256 = sha256(HAGENT_ASSETS) |
-| 路径/配置 | 175-199 | BASE_DIR/CONFIG_FILE/MAX_OUT/_cfg/API 三元组/THINKING（自带，不 import agent） |
-| **NSFW 兼容层** | 200-214 | `NSFW_LAYER`（与 agent/subagent 逐字一致） |
-| Story Runtime | 215-224 | STORY_RUNTIME：你是写正文的（依据规范/不改事实/只输出正文） |
-| Prompt 组装 | 225 | build_story_system() = NSFW_LAYER + STORY_RUNTIME + HAGENT_ASSETS（len 6273） |
-| 流式调用 | 233 | _stream()（write） |
-| Context / 写作 | 266-309 | _read_context() / run_write()（exit 1 缺参 / 2 无API / 3 无文件 / 4 空 / 5 调用失败） |
-| CLI | 310-末尾 | main()：`--context` / `--max-tokens` / `--verify` —— **无 predict / 无 --mode** |
+| 写作规范（统一整块 · v4） | 13-175 | HAGENT_ASSETS_SRC / `HAGENT_ASSETS_SHA256`（**唯一**）/ `HAGENT_ASSETS`（五层 CORE/FLOW/STYLE[命中即改]/REFERENCE/CHECK + 末尾落笔提醒 + 官能密度/内射分层条款；纯写作语言，无架构/元语句） |
+| verify | 176 | 单一 SHA256 = sha256(HAGENT_ASSETS) |
+| 路径/配置 | 183-207 | BASE_DIR/CONFIG_FILE/MAX_OUT/_cfg/API 三元组/THINKING（自带，不 import agent） |
+| **NSFW 兼容层** | 208-222 | `NSFW_LAYER`（与 agent/subagent 逐字一致） |
+| Story Runtime | 223-232 | STORY_RUNTIME：你负责把提供的场景与事实写成玩家可见的正文 |
+| Prompt 组装 | 233 | build_story_system() = NSFW_LAYER + STORY_RUNTIME + HAGENT_ASSETS（len 6771） |
+| 流式调用 | 241 | _stream()（write） |
+| Context / 写作 | 274-317 | _read_context() / run_write()（exit 1 缺参 / 2 无API / 3 无文件 / 4 空 / 5 调用失败） |
+| CLI | 318-末尾 | main()：`--context` / `--max-tokens` / `--verify` —— **无 predict / 无 --mode** |
 
 ### subagent.py（129 行）
 
@@ -198,7 +198,8 @@ flowchart TB
 - 资产 = **单一** `HAGENT_ASSETS`（L13-118，注入整块，五层 CORE→FLOW→STYLE→REFERENCE→CHECK）。
 - 旧 `HAGENT_DEFAULT_NARRATIVE`（数据块，从不注入）已于 2026-09-11「按需暴露」重构删除：其有效内容已被五层块覆盖，残留 `tool_usage_rules` 引用的 recall_context/world_queries 在本项目并不存在（幽灵工具，属应清理的历史遗留）。
 - **禁止**为省 token 摘要 / 拆碎资产；三引号内是**数据**，不得 strip / 格式化。
-- **v3.1（当前）**：在 v3 基础上**剔除全部架构性/元信息语句**（层序说明、"阅读方式/强度标记"图例、MUST/SHOULD 等英文强度标签、"Story Context/Story Task/H-agent/能力空间"等组件名、STORY_RUNTIME 的 [MUST] 与"逐字保留"元语），强度改由中文措辞承载（必须/优先/更好）；真机同轮对照（exp_005）与 v3 无显著差异（综合 73.06 vs 73.83，过度激活率更低 0.588 vs 0.639）。
+- **v4（当前）**：在 v3.1 上按外审 AB 结论做定向强化——**抗碎片**（治新版自身的碎片化 AI 味：单句成段/重复短句/三连短句）+ **官能密度下限提档**（每段 ≥2 身体反应、液体与声音必写、内射四层写满、呻吟 ♡ ≥3、变化与反馈）。同池盲排序（deepseek-v4-pro + flash，n=30/版）双料第一：官能质量均名次 3.77（v3.1 5.10）、AI 味 4.07（v3.1 4.53）；客观硬指标：器官词 +3.5、液体/声音 +0.3、内射明确 +0.4、♡ +2.0、变化词 +1.8、重复短句 0。
+- **v3.1**：在 v3 基础上**剔除全部架构性/元信息语句**（层序说明、"阅读方式/强度标记"图例、MUST/SHOULD 等英文强度标签、"Story Context/Story Task/H-agent/能力空间"等组件名、STORY_RUNTIME 的 [MUST] 与"逐字保留"元语），强度改由中文措辞承载（必须/优先/更好）；真机同轮对照（exp_005）与 v3 无显著差异（综合 73.06 vs 73.83，过度激活率更低 0.588 vs 0.639）。
 - **v3 来源（2026-09-11 实验）**：`~/RP-agent/experiment/`（SCENE_SET_V1 12 场景；A 现资产 / B 心智重排 / B2 局部修正 / **B3T4 胜出**）× 真机 3 采样；胜出判据：同轮对决综合分 73.35 vs 69.94（p=0.080），12 项维度无一低于 A（二次元 +1.01、官能张力 +0.40、模板化 −0.21、节奏 +0.32）。
 - 改资产 → 重算**唯一** SHA256 写入 `HAGENT_ASSETS_SHA256`（L14），否则 `verify()` 启动即抛错。
 
@@ -277,7 +278,7 @@ python3 -c "import ast;[ast.parse(open(f,encoding='utf-8').read()) for f in ('ag
 python3 -c "import sys;sys.path.insert(0,'.');import agent;agent.verify()"        # 资产（委托 story）
 python3 story.py --verify                                                        # 资产直接校验
 python3 -c "import sys;sys.path.insert(0,'.');import agent,story,subagent;print(agent.NSFW_LAYER==story.NSFW_LAYER==subagent.NSFW_LAYER)"  # 兼容层一致
-python3 -c "import sys;sys.path.insert(0,'.');import agent,story;print(len(agent.build_gm_system()),len(story.build_story_system()))"        # 5085 / 6273
+python3 -c "import sys;sys.path.insert(0,'.');import agent,story;print(len(agent.build_gm_system()),len(story.build_story_system()))"        # 5085 / 6771
 python3 -c "import sys;sys.path.insert(0,'.');import agent;print([t['function']['name'] for t in agent.TOOLS])"                              # ['run']
 grep -c "predict\|PREDICT\|MTP" story.py                                        # 0（Story 不含预测/MTP 概念）
 python3 story.py --help | grep -c -- "--mode"                                     # 0（CLI 只有 write/verify）
@@ -285,7 +286,7 @@ python3 ~/.config/term_agent/skill/rp-agent-mtp-fault-suite.py                  
 printf '你好\n' | python3 play.py --quiet                                          # 启动冒烟（需 API）
 ```
 
-验收锚点：`build_gm_system()` len = `5085`；`story.build_story_system()` len = `6273`；`HAGENT_ASSETS_SHA256` 唯一；三处 `NSFW_LAYER` 逐字一致；`story.py` 内 predict/PREDICT/MTP 出现次数 = 0。
+验收锚点：`build_gm_system()` len = `5085`；`story.build_story_system()` len = `6771`；`HAGENT_ASSETS_SHA256` 唯一；三处 `NSFW_LAYER` 逐字一致；`story.py` 内 predict/PREDICT/MTP 出现次数 = 0。
 
 ## 10. 改动定位（任务 → 改哪）
 
