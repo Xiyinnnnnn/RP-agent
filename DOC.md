@@ -42,7 +42,7 @@ flowchart TD
 ```
 ~/RP-agent/
 ├── agent.py          World / GM / Canon（1017 行）
-├── story.py          Story Agent + MTP（899 行）
+├── story.py          Story Agent + MTP（868 行）
 ├── subagent.py       Character Agent（130 行）
 ├── play.py           玩家 IO 薄壳
 ├── launch.sh         桌面启动 → exec play.py --quiet
@@ -89,7 +89,7 @@ flowchart TD
 
 | 区域 | 行 | 内容 |
 |---|---|---|
-| 写作资产（一整块） | 17-575 | `HAGENT_ASSETS_SRC`/`HAGENT_ASSETS_SHA256`（**唯一**）/`HAGENT_ASSETS`（BASE→执行规则→V45 逐字合并，注入）/`HAGENT_DEFAULT_NARRATIVE`（数据资产，不注入，同受单一 SHA 覆盖） |
+| 写作资产（五层结构块） | 17-121 | `HAGENT_ASSETS_SRC`/`HAGENT_ASSETS_SHA256`（**唯一**）/`HAGENT_ASSETS`（CORE→FLOW→STYLE→REFERENCE→CHECK，注入）/`HAGENT_DEFAULT_NARRATIVE`（数据资产，不注入，同受单一 SHA 覆盖） |
 | verify | 575 | 单一 SHA256：sha256(HAGENT_ASSETS + HAGENT_DEFAULT_NARRATIVE) |
 | 路径/配置 | 586-612 | BASE_DIR/CONFIG_FILE/CACHE_DIR/MAX_OUT/_cfg/API 三元组/THINKING（自带，不 import agent） |
 | **NSFW 兼容层** | 612-627 | `NSFW_LAYER`（与 agent/subagent 逐字一致） |
@@ -253,13 +253,13 @@ python3 -c "import ast;[ast.parse(open(f,encoding='utf-8').read()) for f in ('ag
 python3 -c "import sys;sys.path.insert(0,'.');import agent;agent.verify()"        # 资产（委托 story）
 python3 story.py --verify                                                        # 资产直接校验
 python3 -c "import sys;sys.path.insert(0,'.');import agent,story,subagent;print(agent.NSFW_LAYER==story.NSFW_LAYER==subagent.NSFW_LAYER)"  # 兼容层一致
-python3 -c "import sys;sys.path.insert(0,'.');import agent,story;print(len(agent.build_gm_system()),len(story.build_story_system()))"        # 5329 / 8017
+python3 -c "import sys;sys.path.insert(0,'.');import agent,story;print(len(agent.build_gm_system()),len(story.build_story_system()))"        # 5329 / 5554
 python3 -c "import sys;sys.path.insert(0,'.');import agent;print([t['function']['name'] for t in agent.TOOLS])"                              # ['run']
 python3 ~/.config/term_agent/skill/rp-agent-mtp-fault-suite.py                    # 离线故障套件（32 项，0=全过）
 printf '你好\n' | python3 play.py --quiet                                          # 启动冒烟（需 API）
 ```
 
-验收锚点：`build_gm_system()` len = `5329`；`story.build_story_system()` len = `8017`；`HAGENT_ASSETS_SHA256` 唯一；三处 `NSFW_LAYER` 逐字一致。
+验收锚点：`build_gm_system()` len = `5329`；`story.build_story_system()` len = `5554`；`HAGENT_ASSETS_SHA256` 唯一；三处 `NSFW_LAYER` 逐字一致。
 
 ## 10. 改动定位（任务 → 改哪）
 
@@ -277,7 +277,7 @@ printf '你好\n' | python3 play.py --quiet                                     
 | MTP | _mtp_lookup L700 / _schedule_mtp L725 + story.run_predict L794 |
 | NSFW 兼容层 | 三处 `NSFW_LAYER`（agent L53 / story L612 / subagent L42）——必须同步且逐字一致 |
 | 玩家选项 | GM_RUNTIME [OPTIONS] L68 + _split_options L820 / _print_options L828 |
-| 资产(重算 sha) | story：`HAGENT_ASSETS` L19 / `HAGENT_DEFAULT_NARRATIVE` L155 → 唯一 `HAGENT_ASSETS_SHA256` L18 |
+| 资产(重算 sha) | story：`HAGENT_ASSETS` L19 / `HAGENT_DEFAULT_NARRATIVE` L123 → 唯一 `HAGENT_ASSETS_SHA256` L18 |
 | 加角色 / 世界书 | `character/<名>.md` + 登记目录 · `worldbook/<名>.md` + 登记目录 |
 
 ## 11. MTP 加速层（默认关）
