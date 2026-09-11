@@ -34,45 +34,47 @@ def _forward(line):
 
 
 def story_window():
-    import threading, time
-    print("─" * 46)
-    print(" RP-agent · 剧情窗    输入会转交给 GM（agent.py 会话）")
-    print("─" * 46, flush=True)
-    if not _session_alive():
-        print("⚠ 未找到会话 %r —— 请从桌面图标启动，或先跑 launch.sh。" % SESSION, flush=True)
-    stop = threading.Event()
+    """剧情窗：屏幕上只出现剧情本身。
 
-    def follow():
-        f = None
-        while not stop.is_set():
-            if f is None:
-                if not os.path.exists(STORY_LOG):
-                    time.sleep(0.2); continue
-                try:
-                    f = open(STORY_LOG, encoding="utf-8", errors="ignore")
-                    data = f.read()
-                except OSError:
-                    f = None; time.sleep(0.3); continue
-                if data:
-                    sys.stdout.write(data); sys.stdout.flush()
-                continue
+    - 不做任何横幅/状态输出；
+    - `你>` 提示符不在这里打印，而由 agent.py 在**开始等待输入的那一刻**写进镜像文件，
+      客户端只负责把它 tail 出来 —— 于是时机天然正确。
+    - 本窗口读到的整行输入，用 tmux send-keys 注入会话（等同在该终端里敲）。
+    """
+    import select, time
+    f = None
+    while True:
+        if f is None:
+            if not os.path.exists(STORY_LOG):
+                time.sleep(0.2); continue
+            try:
+                f = open(STORY_LOG, encoding="utf-8", errors="ignore")
+            except OSError:
+                time.sleep(0.3); continue
             data = f.read()
             if data:
                 sys.stdout.write(data); sys.stdout.flush()
-            else:
-                time.sleep(0.15)
-
-    threading.Thread(target=follow, daemon=True).start()
-    while True:
-        try:
-            line = input("\n你> ")
-        except (EOFError, KeyboardInterrupt):
-            print(); break
-        if not line.strip():
             continue
-        err = _forward(line)
-        print(("⚠ " + err) if err else "（已转交给 GM…）", flush=True)
-    stop.set()
+        try:
+            rs, _, _ = select.select([sys.stdin, f], [], [], 0.3)
+        except InterruptedError:
+            continue
+        except (OSError, ValueError):
+            return
+        for x in rs:
+            if x is sys.stdin:
+                line = sys.stdin.readline()
+                if line == "":
+                    return
+                if line.strip():
+                    err = _forward(line.rstrip("\n"))
+                    if err:
+                        sys.stderr.write("\n[剧情窗] 转发失败：%s\n" % err)
+                        sys.stderr.flush()
+            else:
+                data = f.read()
+                if data:
+                    sys.stdout.write(data); sys.stdout.flush()
 
 
 def main():

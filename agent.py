@@ -959,6 +959,7 @@ def main():
                     _session["mem"] = mem[last_u:]
                     _session["need_compress"] = False
                     print("[已压缩]", flush=True)
+        _story_log("\n你> ")          # 剧情窗的 你> 由这里产生：正是 agent 开始等输入的瞬间
         try:
             raw = input("\n你> ")
         except _StopLoop:

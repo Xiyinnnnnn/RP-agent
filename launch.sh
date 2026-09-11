@@ -51,7 +51,7 @@ fi
 
 if [ "$dual" = 1 ]; then
   mkdir -p "$(dirname "$STORY_LOG")" 2>/dev/null
-  printf '\n===== RP-agent 剧情窗 =====\n（等待 GM 交付剧情…）\n' > "$STORY_LOG" 2>/dev/null || true
+  : > "$STORY_LOG" 2>/dev/null || true     # 空文件即可；剧情窗不显示任何横幅
   tmux kill-session -t "$SESSION" 2>/dev/null || true
   tmux new-session -d -s "$SESSION" -x 200 -y 50 \
       "cd '$RP_DIR' && RP_AGENT_STORY_LOG='$STORY_LOG' python3 '$RP_DIR/agent.py'"
