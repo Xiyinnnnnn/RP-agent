@@ -1,0 +1,12 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=RP-agent GM
+Comment=终端 GM：主持世界 · 角色扮演
+Exec=/bin/bash @INSTALL_DIR@/launch.sh
+Icon=dialog-messages
+Terminal=true
+Categories=Utility;
+Keywords=rp;agent;GM;角色扮演;roleplay;
+StartupNotify=true

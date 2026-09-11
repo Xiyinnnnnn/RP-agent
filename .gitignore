@@ -1,0 +1,16 @@
+# 本地 API 配置（含 key，勿提交）
+config.json
+
+# 运行状态（RP 存档属于个人数据）
+rp/*/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 个人资产：角色卡 / 世界书不随仓库发布（仅保留各自的 目录.md）
+character/*.md
+!character/目录.md
+worldbook/*.md
+!worldbook/目录.md
