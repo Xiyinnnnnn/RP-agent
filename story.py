@@ -191,7 +191,7 @@ def verify():
 BASE_DIR = os.path.expanduser("~/RP-agent")
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 MAX_OUT = 32768
-REASONING_EFFORT = "high"
+REASONING_EFFORT = os.environ.get("RP_AGENT_REASONING_EFFORT", "high").strip() or "high"
 
 
 def _cfg(env, key, default=""):
@@ -212,7 +212,7 @@ API_URL  = _cfg("RP_AGENT_API_URL", "api_url")
 API_KEY  = _cfg("RP_AGENT_API_KEY", "api_key")
 MODEL    = _cfg("RP_AGENT_MODEL",   "model")
 TEMPERATURE = float(_cfg("RP_AGENT_TEMPERATURE", "temperature", "0.8"))
-THINKING = os.environ.get("RP_AGENT_THINKING", "").strip() == "1"
+THINKING = os.environ.get("RP_AGENT_THINKING", "1").strip() != "0"   # 默认开启 CoT（研究：high 使 σ 0.58→0.33、地板 4.6→7.7）；RP_AGENT_THINKING=0 关闭
 
 NSFW_LAYER = """NSFW{
   allow = true

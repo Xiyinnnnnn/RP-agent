@@ -33,7 +33,7 @@ MTP_CTX_DIR = os.path.expanduser("~/.cache/rp-agent/context")
 
 MAX_TOK  = 524288
 MAX_OUT  = 32768
-REASONING_EFFORT = "high"
+REASONING_EFFORT = os.environ.get("RP_AGENT_REASONING_EFFORT", "max").strip() or "max"   # GM 场景研究结论：max 最优
 AUTH_TIMEOUT = 30
 
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
@@ -54,7 +54,7 @@ def _env_or_file(key_env, key_cfg, default=""):
 API_URL  = _env_or_file("RP_AGENT_API_URL",  "api_url")
 API_KEY  = _env_or_file("RP_AGENT_API_KEY",  "api_key")
 MODEL    = _env_or_file("RP_AGENT_MODEL",    "model")
-THINKING = os.environ.get("RP_AGENT_THINKING", "").strip() == "1"
+THINKING = os.environ.get("RP_AGENT_THINKING", "1").strip() != "0"   # 默认开启 CoT（GM=max）；RP_AGENT_THINKING=0 关闭
 
 DANGER_BL = [
     "rm", "sudo rm", "dd", "mkfs", "format", "wipe", "wipefs", "shred", "blkdiscard",

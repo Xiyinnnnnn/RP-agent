@@ -74,19 +74,12 @@ flowchart TB
 - `story.py` — **Story Agent**：把已确认世界写成 Story 正文
 - `subagent.py` — **Character Agent**：单角色局部表现
 
-> agent.py 管“真实发生了什么”；story.py 管“写成什么”；subagent.py 管“角色本人怎么反应”。
-> Story Context 是一次性快照（`~/.cache/rp-agent/context/`），不属于 Canon、可随时删除。
-
 
 ### MTP 预生成（可选，默认关闭）
 
 ```bash
 export RP_AGENT_MTP_BRANCHES=3   # 0=关闭（默认）；有效 1–4，建议 2–3
 ```
-
-MTP 完全由 `agent.py` 控制：本轮 Story 展示后，程序为每个分支写一份「Story Context + 走向指令」，
-并行调用**普通** `story.py`（story.py 不知道自己是分支），候选只写 `~/.cache/rp-agent/story/`，
-命中且 State 未变时才替换展示文本。候选永不进 Canon、永不进 State。
 
 ## 安装
 

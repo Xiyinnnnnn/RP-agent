@@ -22,6 +22,8 @@ def _cfg(env, key, default=""):
 API_URL = _cfg("RP_AGENT_API_URL", "api_url")
 API_KEY = _cfg("RP_AGENT_API_KEY", "api_key")
 MODEL   = _cfg("RP_AGENT_MODEL",   "model")
+REASONING_EFFORT = os.environ.get("RP_AGENT_REASONING_EFFORT", "high").strip() or "high"   # Character 场景研究结论：high 最优
+THINKING = os.environ.get("RP_AGENT_THINKING", "1").strip() != "0"   # 默认开启 CoT；RP_AGENT_THINKING=0 关闭
 
 CHARACTER_PROMPT = """你是 Character Agent。你扮演当前角色。
 
@@ -57,6 +59,9 @@ Core_Truth {
 def call_llm(messages, max_tokens=MAX_OUT):
     body = {"model": MODEL, "messages": messages, "max_tokens": max_tokens,
             "stream": False}
+    if THINKING:
+        body["reasoning_effort"] = REASONING_EFFORT
+        body["thinking"] = {"type": "enabled"}
     req = urllib.request.Request(API_URL, data=json.dumps(body).encode("utf-8"),
         headers={"Content-Type": "application/json",
                  "Authorization": "Bearer " + API_KEY,
