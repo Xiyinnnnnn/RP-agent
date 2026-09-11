@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, re, signal, subprocess, sys, time, threading, urllib.request, hashlib, base64
+import concurrent.futures, json, os, re, signal, subprocess, sys, time, threading, urllib.request, hashlib, base64
 
 def verify():
     """H-agent 写作资产已物理迁入 story.py（2026-09-11 Phase 1 拆分）；委托其校验，完整性保护不削弱。"""
@@ -83,8 +83,8 @@ Core_Truth {
 GM_RUNTIME = """# GM Runtime — 你是一个终端 GM
 
 [ROLE] 你是 GM（Game Master）。
-你主持并维护世界。你不是预先设计剧情的小说导演，不是每回合推动剧情高潮的编剧，
-不是管理程序架构的 Manager。你管理的是世界，不是剧情流程。
+你主持并维护世界。你管理的是世界，不是剧情流程；你不是预先设计剧情的小说导演，
+也不是每回合推动剧情高潮的编剧。
 
 [BOOT] 新启动时（不跳过），先自己用 run 执行：
   ls ~/RP-agent/character/ → 读取 目录.md
@@ -172,7 +172,7 @@ subagent 返回该角色局部结果 → GM 判断是否真实发生、是否形
 [HISTORY] rp/<RP>/History.md 保持交互连续性。不是最高事实来源。
 [SUMMARY] rp/<RP>/Summary.md 压缩历史。不是 Canon，不替代 State。冲突时当前确认 State 优先。
 
-[RP] RP 生命周期由你（GM）承担，用 run 处理，不依赖任何程序指令：
+[RP] RP 生命周期由你（GM）承担，用 run 处理：
 - 工作区：~/RP-agent/rp/<RP>/{State.md, History.md, Summary.md}
 - 新建：玩家表达开始新故事 → 你用 run 创建 rp/<名>/ 三件套骨架并登记 rp/目录.md，然后开场。
 - 恢复：玩家提到继续/回到某故事 → 你用 run 读取 rp/<名>/State.md（及必要 History/Summary）装载背景后继续。
@@ -189,12 +189,12 @@ subagent 返回该角色局部结果 → GM 判断是否真实发生、是否形
 确有值得保持连续性的重要交互则用 run 追加 History.md；无变化就不写 State/History。
 然后必须用 run 把本轮 Story Context 写入固定路径 ~/.cache/rp-agent/context/story-context.md（heredoc 覆盖写）。
 写文件是真实动作：必须执行 run 并等待真实返回，不得只"想"不写。
-写完后，用一句话说明本轮交接完成即可；不要写 Story 正文（正文由 Story Agent 生成，不由你负责）。
+写完后，用一句话说明本轮交接完成即可；不要自己写 Story 正文。
 
 [STORY_HANDOFF] Story Context 由你（GM）准备，是 Story Agent 唯一的写作依据。用 run 写入：
   mkdir -p ~/.cache/rp-agent/context
   cat > ~/.cache/rp-agent/context/story-context.md << 'EOF'
-  （按块组织，只放本轮写作真正需要的信息，不要把整个仓库全量塞入）
+  （按块组织：只写本轮写作真正需要的块；不需要的块直接不写，不要写"无 / N/A / 暂无"占位；不要把整个仓库全量塞入）
   # Current Input            当前玩家行为
   # Confirmed State          相关已确认 State（抄录必要条目）
   # Confirmed World Changes  本轮已经确认的世界变化
@@ -205,8 +205,6 @@ subagent 返回该角色局部结果 → GM 判断是否真实发生、是否形
   # Character Agent Results  本轮 Character Agent 输出（如有）
   # Story Task               本轮叙事任务 / 场景与连续性要求
   EOF
-Story Agent 不做世界裁决、不写 State；它只把已确认的世界写成 Story 正文。
-玩家看到 Story 与（可选的）行动选项；不暴露 Prompt / State Diff / Context / run 命令 / 文件系统操作 / GM 内部判断。
 
 [OPTIONS] 玩家交互选项（属于你，不属于 Story Agent）
 你负责世界判断，也负责玩家交互选项。
@@ -214,12 +212,10 @@ Story Agent 不做世界裁决、不写 State；它只把已确认的世界写�
 - 选项只是玩家行动建议：不是已经发生的事实，不是 Canon，不代表玩家已经选择，也不代表世界已经发生。
 - 不强制每轮生成；0～3 个；不要为了凑数量制造无意义选项。
 - 玩家始终可以自由输入其他行动；选项不限制自由输入。
-- MTP 预测分支 ≠ 玩家选项；不得把预测分支直接当作选项展示。
 需要时，在本轮 Story Context 文件**末尾**追加一个块（不需要则整块不写）：
   # Player Options
   1. ……
   2. ……
-Story 正文与选项由程序分开展示：Story 来自 Story Agent，选项来自你写的这个块。
 """
 
 def build_gm_system(extra_rules=""):
@@ -232,7 +228,7 @@ TOOLS = [{
     "type": "function",
     "function": {
         "name": "run",
-        "description": "执行终端命令并返回真实输出。这是 GM 唯一外部行动原语：读取文件(cat/ls/grep)、运行 subagent(python3 subagent.py ...)、写文件等。需要信息就 run，得到真实结果后再判断。",
+        "description": "执行终端命令并返回真实输出。这是你唯一的外部行动工具：需要信息或需要执行动作时就 run，得到真实结果后再判断。",
         "parameters": {"type": "object", "properties": {
             "command":   {"type": "string", "description": "要执行的 shell 命令"},
             "explain":   {"type": "string", "description": "为什么执行这条命令"},
@@ -657,6 +653,23 @@ def _mtp_log(msg):
 
 _MTP_THREAD = {"t": None}
 
+# —— MTP 分支资产（程序侧；只拼进分支 Context，永不进 GM Prompt）——
+MTP_BRANCH_RUNTIME = """# MTP Branch Directive — 下一轮候选（预测，不是事实）
+
+[MODE] 基于以上已确认的世界，写出一个"下一轮可能发生"的候选。
+[走向] %s
+[约束]
+- 只写这一个走向；与已确认事实相容，不引入冲突；不声称已经发生。
+- 只输出 Story 正文：不解释、不编号、不加标题。
+"""
+
+MTP_BRANCHES = (
+    ("A", "玩家主动推进：直接、明确地采取行动推进当前情境"),
+    ("B", "玩家顺从回应：顺着当前情境与对方继续下去"),
+    ("C", "玩家抵抗或回避：拒绝、后撤或转移方向"),
+    ("D", "玩家转向新方向：把注意力放到其它人、其它事或新地点"),
+)
+
 
 def _state_fingerprint():
     """当前 RP 已确认 State 的稳定指纹（Canon 侧）。"""
@@ -737,53 +750,88 @@ def _mtp_lookup(q):
     return None
 
 
-def _schedule_mtp(ctx):
-    """MTP 加速层（默认关）：当前 Story 展示后**后台**生成下一轮候选，绝不阻塞主链。
+def _mtp_branch_ctx(ctx, directive):
+    """分支 Context = 本轮 Story Context + 程序侧走向指令。"""
+    return ctx.rstrip() + "\n\n" + (MTP_BRANCH_RUNTIME % directive)
 
+
+def _story_once(ctx_file):
+    """调用一次普通 story.py 写作（不含任何分支语义）。失败抛异常。"""
+    proc = subprocess.run([sys.executable, STORY_PY, "--context", "@" + ctx_file],
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1200)
+    if proc.returncode != 0:
+        err = (proc.stderr or b"").decode("utf-8", "ignore").strip().splitlines()
+        raise RuntimeError("story.py rc=%d %s" % (proc.returncode, err[-1] if err else ""))
+    return (proc.stdout or b"").decode("utf-8", "ignore").strip()
+
+
+def _schedule_mtp(ctx):
+    """MTP 加速层（默认关）：本轮 Story 展示后**后台**并行生成下一轮候选。
+
+    分支完全由本程序控制：每分支 = Story Context + 程序侧走向指令 → 并行普通 story.py。
     - 候选只写 ~/.cache/rp-agent/story/，永不触碰 rp/ Canon 文件。
-    - 上一轮预测未完成则跳过本轮（旧预测已随新一轮失效）。
-    - 任何失败只记日志，不影响普通 RP。
+    - 上一轮预测未完成则跳过（旧预测已随新一轮失效）；失败只记日志，不影响主链。
     """
-    n = _mtp_count()
-    if n <= 0 or not (ctx or "").strip() or not os.path.exists(STORY_PY):
+    k = _mtp_count()
+    if k <= 0 or not (ctx or "").strip() or not os.path.exists(STORY_PY):
         return
     t = _MTP_THREAD.get("t")
     if t is not None and t.is_alive():
         return
     rp_dir = _locate_active_rp()
     rp = os.path.basename(rp_dir) if rp_dir else ""
-    state = ""
-    if rp_dir:
-        sp = os.path.join(rp_dir, "State.md")
-        if os.path.exists(sp):
-            try:
-                state = open(sp, encoding="utf-8").read()
-            except OSError:
-                pass
-    state_fp = hashlib.sha256(_norm_text(state).encode("utf-8")).hexdigest()
     cache_id = _safe_name(rp)
-    ctx_file = os.path.join(MTP_CTX_DIR, "predict-%s.md" % cache_id)
+    state_fp = _state_fingerprint()
+    ctx_fp = hashlib.sha256(ctx.encode("utf-8")).hexdigest()
+    spec = MTP_BRANCHES[:max(1, min(k, len(MTP_BRANCHES)))]
 
     def worker():
+        files = []
         try:
             os.makedirs(MTP_CTX_DIR, exist_ok=True)
-            with open(ctx_file, "w", encoding="utf-8") as f:
-                f.write(ctx)
-            p = subprocess.run(
-                [sys.executable, STORY_PY, "--mode", "predict",
-                 "--context", "@" + ctx_file, "--cache", cache_id,
-                 "--count", str(n), "--rp", rp, "--state-fingerprint", state_fp],
-                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=1200)
-            if p.returncode != 0:
-                err = (p.stderr or b"").decode("utf-8", "ignore").strip().splitlines()
-                _mtp_log("predict 失败 rc=%d: %s" % (p.returncode, err[-1] if err else ""))
+            for bid, directive in spec:
+                fp = os.path.join(MTP_CTX_DIR, "branch-%s-%s.md" % (cache_id, bid))
+                with open(fp, "w", encoding="utf-8") as f:
+                    f.write(_mtp_branch_ctx(ctx, directive))
+                files.append((bid, directive, fp))
+            got = {}
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(files)) as ex:
+                futs = {ex.submit(_story_once, fp): (bid, cond) for bid, cond, fp in files}
+                for fu in concurrent.futures.as_completed(futs):
+                    bid, cond = futs[fu]
+                    try:
+                        story = fu.result()
+                    except Exception as e:
+                        _mtp_log("分支 %s 失败: %s" % (bid, e))
+                        continue
+                    if story:
+                        got[bid] = {"branch_id": bid, "condition": cond, "story": story}
+            if not got:
+                _mtp_log("全部分支失败，未写缓存")
+                return
+            cache = {
+                "candidate_set_id": "%s-%s" % (rp or "rp", time.strftime("%Y%m%dT%H%M%S")),
+                "rp": rp or "",
+                "source_state_fingerprint": state_fp,
+                "source_context_fingerprint": ctx_fp,
+                "created_at": time.time(),
+                "branches": [got[b] for b, _ in spec if b in got],
+            }
+            os.makedirs(MTP_DIR, exist_ok=True)
+            path = os.path.join(MTP_DIR, cache_id + ".json")
+            tmp = path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(cache, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, path)
+            _mtp_log("候选 %d 条已缓存 → %s" % (len(cache["branches"]), path))
         except Exception as e:
-            _mtp_log("predict 异常: %s" % e)
+            _mtp_log("预测异常: %s" % e)
         finally:
-            try:
-                os.remove(ctx_file)
-            except OSError:
-                pass
+            for _, _, fp in files:
+                try:
+                    os.remove(fp)
+                except OSError:
+                    pass
 
     th = threading.Thread(target=worker, daemon=True)
     _MTP_THREAD["t"] = th

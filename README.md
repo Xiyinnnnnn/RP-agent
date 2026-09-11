@@ -17,7 +17,7 @@ flowchart TB
     Sub --> Agent
     Agent -- Story Context --> Story[story.py · Story Agent]
     Story -- Story 正文 --> Agent
-    Agent -. MTP 后台预测（默认关） .-> Story
+    Agent -. MTP：并行 N 个普通 story.py（默认关） .-> Story
     Agent -- Story + 可选 Options --> Play
 ```
 
@@ -65,7 +65,7 @@ flowchart TB
     N --> A1[agent.py = NSFW_LAYER + GM_RUNTIME]
     N --> S1[story.py = NSFW_LAYER + STORY_RUNTIME + HAGENT_ASSETS]
     N --> U1[subagent.py = NSFW_LAYER + CHARACTER_PROMPT + 角色卡]
-    S1 --> HA[HAGENT_ASSETS 一整块 · BASE → 执行规则 → V45 · 单一 SHA256]
+    S1 --> HA[HAGENT_ASSETS 一整块 · CORE→FLOW→STYLE→REFERENCE→CHECK · 单一 SHA256]
 ```
 
 ## 职责分工
@@ -83,6 +83,10 @@ flowchart TB
 ```bash
 export RP_AGENT_MTP_BRANCHES=3   # 0=关闭（默认）；有效 1–4，建议 2–3
 ```
+
+MTP 完全由 `agent.py` 控制：本轮 Story 展示后，程序为每个分支写一份「Story Context + 走向指令」，
+并行调用**普通** `story.py`（story.py 不知道自己是分支），候选只写 `~/.cache/rp-agent/story/`，
+命中且 State 未变时才替换展示文本。候选永不进 Canon、永不进 State。
 
 ## 安装
 
@@ -127,7 +131,7 @@ export RP_AGENT_MODEL=<model>
 ```
 ~/RP-agent/
 ├── agent.py          World/GM（世界运行、Canon、Story Context）
-├── story.py          Story Agent（写作；MTP 默认关闭）
+├── story.py          Story Agent（纯写作：Context + 写作资产 → 正文）
 ├── subagent.py       角色 Agent
 ├── play.py           玩家 IO（单窗口 / --attach 剧情窗）
 ├── launch.sh         启动（双窗口）
