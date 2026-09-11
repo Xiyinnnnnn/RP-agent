@@ -109,19 +109,19 @@ flowchart TD
 | 玩家选项 | 880-985 | _OPT_MARK/_split_options/_print_options（只展示，不入 Canon） |
 | 主循环 | 986-末尾 | main() |
 
-### story.py（279 行）
+### story.py（328 行）
 
 | 区域 | 行 | 内容 |
 |---|---|---|
-| 写作资产（统一整块） | 13-118 | HAGENT_ASSETS_SRC / `HAGENT_ASSETS_SHA256`（**唯一**）/ `HAGENT_ASSETS`（CORE→FLOW→STYLE→REFERENCE→CHECK，注入） |
-| verify | 119 | 单一 SHA256 = sha256(HAGENT_ASSETS) |
-| 路径/配置 | 126-150 | BASE_DIR/CONFIG_FILE/MAX_OUT/_cfg/API 三元组/THINKING（自带，不 import agent） |
-| **NSFW 兼容层** | 151-165 | `NSFW_LAYER`（与 agent/subagent 逐字一致） |
-| Story Runtime | 166-178 | STORY_RUNTIME：角色/必须/输出（极薄，无架构解释） |
-| Prompt 组装 | 179 | build_story_system() = NSFW_LAYER + STORY_RUNTIME + HAGENT_ASSETS（len 4838） |
-| 流式调用 | 187 | _stream() |
-| Context / 写作 | 220-263 | _read_context() / run_write()（exit 1 缺参 / 2 无API / 3 无文件 / 4 空 / 5 调用失败） |
-| CLI | 264-末尾 | main()：`--context` / `--max-tokens` / `--verify` —— **无 predict / 无 --mode** |
+| 写作资产（统一整块 · v3 B3T4） | 13-167 | HAGENT_ASSETS_SRC / `HAGENT_ASSETS_SHA256`（**唯一**）/ `HAGENT_ASSETS`（五层 CORE/FLOW/STYLE[BANS]/REFERENCE/CHECK + 末尾极短 Style Tail，注入） |
+| verify | 168 | 单一 SHA256 = sha256(HAGENT_ASSETS) |
+| 路径/配置 | 175-199 | BASE_DIR/CONFIG_FILE/MAX_OUT/_cfg/API 三元组/THINKING（自带，不 import agent） |
+| **NSFW 兼容层** | 200-214 | `NSFW_LAYER`（与 agent/subagent 逐字一致） |
+| Story Runtime | 215-227 | STORY_RUNTIME：角色/必须/输出（极薄，无架构解释） |
+| Prompt 组装 | 228 | build_story_system() = NSFW_LAYER + STORY_RUNTIME + HAGENT_ASSETS（len 6751） |
+| 流式调用 | 236 | _stream()（write） |
+| Context / 写作 | 269-312 | _read_context() / run_write()（exit 1 缺参 / 2 无API / 3 无文件 / 4 空 / 5 调用失败） |
+| CLI | 313-末尾 | main()：`--context` / `--max-tokens` / `--verify` —— **无 predict / 无 --mode** |
 
 ### subagent.py（129 行）
 
@@ -198,6 +198,7 @@ flowchart TB
 - 资产 = **单一** `HAGENT_ASSETS`（L13-118，注入整块，五层 CORE→FLOW→STYLE→REFERENCE→CHECK）。
 - 旧 `HAGENT_DEFAULT_NARRATIVE`（数据块，从不注入）已于 2026-09-11「按需暴露」重构删除：其有效内容已被五层块覆盖，残留 `tool_usage_rules` 引用的 recall_context/world_queries 在本项目并不存在（幽灵工具，属应清理的历史遗留）。
 - **禁止**为省 token 摘要 / 拆碎资产；三引号内是**数据**，不得 strip / 格式化。
+- **v3 来源（2026-09-11 实验）**：`~/RP-agent/experiment/`（SCENE_SET_V1 12 场景；A 现资产 / B 心智重排 / B2 局部修正 / **B3T4 胜出**）× 真机 3 采样；胜出判据：同轮对决综合分 73.35 vs 69.94（p=0.080），12 项维度无一低于 A（二次元 +1.01、官能张力 +0.40、模板化 −0.21、节奏 +0.32）。
 - 改资产 → 重算**唯一** SHA256 写入 `HAGENT_ASSETS_SHA256`（L14），否则 `verify()` 启动即抛错。
 
 ## 5. 数据模型 / Canon / 不变量
@@ -275,7 +276,7 @@ python3 -c "import ast;[ast.parse(open(f,encoding='utf-8').read()) for f in ('ag
 python3 -c "import sys;sys.path.insert(0,'.');import agent;agent.verify()"        # 资产（委托 story）
 python3 story.py --verify                                                        # 资产直接校验
 python3 -c "import sys;sys.path.insert(0,'.');import agent,story,subagent;print(agent.NSFW_LAYER==story.NSFW_LAYER==subagent.NSFW_LAYER)"  # 兼容层一致
-python3 -c "import sys;sys.path.insert(0,'.');import agent,story;print(len(agent.build_gm_system()),len(story.build_story_system()))"        # 5085 / 4838
+python3 -c "import sys;sys.path.insert(0,'.');import agent,story;print(len(agent.build_gm_system()),len(story.build_story_system()))"        # 5085 / 6751
 python3 -c "import sys;sys.path.insert(0,'.');import agent;print([t['function']['name'] for t in agent.TOOLS])"                              # ['run']
 grep -c "predict\|PREDICT\|MTP" story.py                                        # 0（Story 不含预测/MTP 概念）
 python3 story.py --help | grep -c -- "--mode"                                     # 0（CLI 只有 write/verify）
@@ -283,7 +284,7 @@ python3 ~/.config/term_agent/skill/rp-agent-mtp-fault-suite.py                  
 printf '你好\n' | python3 play.py --quiet                                          # 启动冒烟（需 API）
 ```
 
-验收锚点：`build_gm_system()` len = `5085`；`story.build_story_system()` len = `4838`；`HAGENT_ASSETS_SHA256` 唯一；三处 `NSFW_LAYER` 逐字一致；`story.py` 内 predict/PREDICT/MTP 出现次数 = 0。
+验收锚点：`build_gm_system()` len = `5085`；`story.build_story_system()` len = `6751`；`HAGENT_ASSETS_SHA256` 唯一；三处 `NSFW_LAYER` 逐字一致；`story.py` 内 predict/PREDICT/MTP 出现次数 = 0。
 
 ## 10. 改动定位（任务 → 改哪）
 
