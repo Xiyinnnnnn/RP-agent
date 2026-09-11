@@ -13,6 +13,21 @@ WORLD_DIR   = os.path.join(BASE_DIR, "worldbook")
 RP_DIR      = os.path.join(BASE_DIR, "rp")
 STORY_PY    = os.path.join(BASE_DIR, "story.py")
 STORY_CTX   = os.path.expanduser("~/.cache/rp-agent/context/story-context.md")
+
+STORY_LOG    = os.environ.get("RP_AGENT_STORY_LOG", "")
+
+
+def _story_log(txt):
+    """把 Story 正文镜像到独立文件，供第二窗口 tail 显示（双窗口启动）。
+    未设置 RP_AGENT_STORY_LOG 时为空操作——单窗口行为逐字节不变。"""
+    if not STORY_LOG or not txt:
+        return
+    try:
+        with open(STORY_LOG, "a", encoding="utf-8") as f:
+            f.write(txt)
+            f.flush()
+    except OSError:
+        pass
 MTP_DIR     = os.path.expanduser("~/.cache/rp-agent/story")
 MTP_CTX_DIR = os.path.expanduser("~/.cache/rp-agent/context")
 
@@ -836,6 +851,7 @@ def _print_options(opts):
              if l.strip() and l.strip().rstrip(".。") not in ("无", "None", "none", "-", "1")]
     if not lines:
         return
+    _story_log("\n[可选行动]\n" + "".join("  " + l + "\n" for l in lines[:3]))
     print("\n[可选行动]")
     for l in lines[:3]:
         print("  " + l)
@@ -870,6 +886,7 @@ def _render_story(handoff=""):
             if hit.get("state_fp") == _state_fingerprint():
                 print("\n" + "\u2500" * 40, flush=True)
                 print(hit["story"])
+                _story_log("\n" + "\u2500" * 40 + "\n" + hit["story"] + "\n")
                 print("\u2500" * 40, flush=True)
                 _print_options(_opts)
                 _mtp_log("复用候选 %s（State 未变，跳过 story.py）" % hit.get("branch_id"))
@@ -880,6 +897,7 @@ def _render_story(handoff=""):
             print("\n[Story Agent 不可用] 未找到 %s，本轮无法生成 Story。" % STORY_PY)
             return None
         print("\n" + "\u2500" * 40, flush=True)
+        _story_log("\n" + "\u2500" * 40 + "\n")
         try:
             proc = subprocess.Popen([sys.executable, STORY_PY, "--context", "@" + STORY_CTX],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -890,6 +908,7 @@ def _render_story(handoff=""):
                     break
                 sys.stdout.write(chunk.decode("utf-8", "ignore"))
                 sys.stdout.flush()
+                _story_log(chunk.decode("utf-8", "ignore"))
                 out.append(chunk)
             err = proc.stderr.read().decode("utf-8", "ignore")
             proc.wait()
@@ -911,6 +930,7 @@ def _render_story(handoff=""):
 
 
 def _print_story(txt):
+    _story_log("\n" + "─" * 40 + "\n" + txt + "\n")
     print("\n" + "─" * 40)
     print(txt)
     print("─" * 40)

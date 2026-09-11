@@ -44,8 +44,8 @@ flowchart TD
 ├── agent.py          World / GM / Canon（1017 行）
 ├── story.py          Story Agent + MTP（868 行）
 ├── subagent.py       Character Agent（130 行）
-├── play.py           玩家 IO 薄壳
-├── launch.sh         桌面启动 → exec play.py --quiet
+├── play.py           玩家 IO：单窗口运行 / --attach 剧情窗客户端
+├── launch.sh         桌面双击 → 双窗口（tmux GM 会话 + 剧情窗）
 ├── install.sh        一键安装（FILES 含 story.py）
 ├── RP-agent.desktop  快捷方式模板（@INSTALL_DIR@ 占位）
 ├── DOC.md / README.md / LICENSE
@@ -55,6 +55,27 @@ flowchart TD
 ```
 
 无 DB / RAG / 浏览器 / localStorage。文件系统即运行环境。
+
+### 1.1 启动形态：双窗口（桌面双击）
+
+```
+[双击 RP-agent.desktop] → launch.sh
+   ├─ tmux 会话（唯一状态持有者）        python3 agent.py   RP_AGENT_STORY_LOG=<镜像文件>
+   ├─ 窗口① GM 控制台 = tmux attach      全量输出（[run]/思维链/状态行/Story），可直接输入
+   └─ 窗口② 剧情窗   = play.py --attach  只显示 Story + [可选行动]；此处输入经 tmux send-keys 转交给会话
+```
+
+不变量：
+- **State/History/Summary 只有一个写者** = tmux 会话里那一个 `agent.py`；窗口②是纯 IO 客户端，不碰 `rp/`。
+- 剧情窗内容来源 = `RP_AGENT_STORY_LOG`（默认 `~/.cache/rp-agent/story-window.log`）：agent.py 把 Story 正文与选项镜像进去，窗口② tail 它。未设置该变量时 `_story_log()` 为空操作，单窗口行为逐字节不变。
+
+| 开关 | 作用 |
+|---|---|
+| `RP_AGENT_1WIN=1` | 强制单窗口（`play.py --quiet`，旧行为） |
+| 无 tmux / konsole / GUI 会话 | 自动回退单窗口 |
+| `RP_AGENT_TMUX` | tmux 会话名（默认 `rp-agent`） |
+| `RP_AGENT_STORY_LOG` | 剧情镜像文件路径 |
+| `RP_AGENT_DRY=1` | 只打印将执行的命令 |
 
 ## 2. 结构索引（行号锚点）
 
@@ -142,7 +163,7 @@ flowchart LR
 
 | 入口 | 命令 | 出口 | 失败码 |
 |---|---|---|---|
-| agent | `play.py [--quiet]` | stdout：Story + `[可选行动]` | — |
+| agent | `play.py [--quiet]` / `play.py --attach` | stdout：全量 或 仅 Story+`[可选行动]`（同时镜像到 `RP_AGENT_STORY_LOG`） | — |
 | story write | `story.py --context @f` | stdout：仅 Story 正文 | 2 无API / 3 无文件 / 4 空 / 5 调用失败 |
 | story predict | `story.py --mode predict --context @f --cache id --count N --rp X --state-fingerprint H` | 缓存 JSON（stdout 静默） | 2/3/4/5 + 6 全分支失败 / 7 写缓存失败 |
 | story list | `story.py --mode list --cache id` | stdout：候选摘要 | 1 缺参 |
