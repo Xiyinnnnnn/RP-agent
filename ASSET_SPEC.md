@@ -1,162 +1,629 @@
 # ASSET_SPEC·RP-agent·HAGENT_ASSETS
-> AUD:model。HUMAN_READABILITY=牺牲项。INFO_DENSITY=max。目标：读毕→零歧义复现/改资产+预测改动收益&风险。
-> REV:v5.1｜len=7083B｜sha256=58cf06c11aa117b2…｜env:{temp:float=0.8;thinking:bool=1;effort:high}
+> AUD=model｜HUMAN_READABILITY=0｜INFO_DENSITY=max｜RULE=先定权责→再定输入→再生成｜REV=v6.0
 
-## §0 生成入口
-```
-S = join(NSFW_LAYER, STORY_RUNTIME, HAGENT_ASSETS)     # system
-Y = f(S, C, ε)  ;  C=StoryContext(事实+场景+当前拍+任务)  ;  ε~采样
-body = {model, messages:[sys=S, user=C], max_tokens:32768, stream:1,
-        temperature:0.8, thinking:{type:enabled}, reasoning_effort:high}
-```
-```
-[ C ] ──► [ S 固定 ] ──► 1×LLM ──► Y(纯正文) ──► stdout
-                              ▲
-  调参(temp,thinking)＝只改 ε 分布；改 S＝改条件先验
-```
+## 0. SYSTEM
+```text
+SYSTEM = NSFW_LAYER + STORY_RUNTIME + HAGENT_ASSETS
+USER   = StoryContext
+RUN    = 1×LLM / 1次正文生成
+OUT    = 纯Story正文
 
-## §1 资产架构（5层+头+尾锚）
-```
-PRIORITY: 事实>文采 | 人物>装饰 | 本轮任务>偏好        # header,冲突裁决
-├[CORE]      不变式: 授权/事实源/视角/纯正文/不造不猜/硬限   # ALWAYS
-├[FLOW]      现在写什么: 事件链·当前拍·场景连续性·官能权重·镜头节奏
-├[STYLE]     怎么写: 中文自然·二次元·感官·对白·身体关系·官能密度·反模式·选词
-├[REFERENCE] 备选词库(白名单): 器官/拟声/动作/状态/淫语/声线   #optional,不要求覆盖
-├[CHECK]     自检: 决定前5·交付前7
-└TAIL        质量锚(recency): 句子成句/段有动静/零AI腔/越写越紧
-```
-```
-CORE ──定边界──► FLOW ──定拍──► STYLE ──定句──► REFERENCE ──取词──► CHECK ──自检──► Y
-  ▲ 不变式优先级递减；越靠尾越影响输出(recency)
-```
-| 层 | 作用域 | 生效条件 | 违例后果 |
-|---|---|---|---|
-|CORE|全局|恒|事实/视角崩=废|
-|FLOW|本轮|恒|跳拍/总结=最重失误|
-|STYLE|句段|恒|AI腔/碎=降质|
-|REFERENCE|取词|可选|缺词=干写|
-|CHECK|收尾|恒|漏检=缺陷外泄|
+World/GM ≠ Story/Writer
+World/GM : 世界运行、事实确认、Canon、State、History、Context组装
+Story    : 写作，不运行世界，不裁决事实，不维护长期记忆
 
-## §2 技术清单(机制→量)
-|#|技|机制|量|
-|---|---|---|---|
-|T1|层级化+优先级头|静态规则按作用域分层，冲突可裁决|—|
-|T2|去架构语句(v3.1)|删 层序说明/强度标签(MUST·SHOULD)/组件名/元语；强度改中文措辞|规则可见性↓|
-|T3|条件化/能力路由|规则仅触发条件成立时生效(如密度下限仅身体场景)|过约束↓|
-|T4|BANS三档|绝不能 > 命中即改 > 更好|分级容忍|
-|T5|尾锚recency|定稿标准置资产末|弱维方差↓|
-|T6|密度下限+中句承载(以密度治碎)|段≥4肉词·≥3身体反应·≥1器官；动作+反应+声音/液体并进**一句中句**|肉词/段↑&碎↓(协同)|
-|T7|反碎片|段≥3句且≥80字；全篇单句成段≤2；禁重复短句/三连短句尾；极短句仅失控瞬间|碎段率↓|
-|T8|分阶段句长|铺垫长/推进中/张力短/高潮极短/余韵长(非硬比例)|节奏随张力|
-|T9|词表白名单+同义上限|器官/拟声白名单；同场同义词≤2-3，余者重复第一个|词循环=模型腔↓|
-|T10|采样|temp0.8 + thinking high|见§3|
+State        = persistent
+History      = persistent
+StoryContext = ephemeral
+Writer       = stateless-per-run
 
-## §3 收益模型(精确)
-```
-Q   = mean(9维盲评)          # 中文自然/官能具体/液声/身体密度/内射完整/推进/抗碎/AI味/整体
-Floor = p10(Q)
-```
-|干预|ΔQ(mean)|Δσ(Q)|ΔFloor|成本|
-|---|---|---|---|---|
-|temp 1.0→0.8|8.70→8.67|0.456→**0.339(−26%)**|7.33→7.44|0|
-|temp0.8+质量锚|8.70→**8.76**|0.456→**0.309(−32%)**|7.33→**7.56**|0|
-|thinking high|8.61→8.70|0.576→**0.330**|4.56→**7.67**|延迟9.5→20.1s|
-|best-of-2(oracle)|8.70→**8.96**|0.456→0.306|7.33→**8.22**|2×|
-|密度治碎(D1 vs B4)|—|—|—|肉词/段3.4→5.0；碎段率19.9→14.1；段均长63.3→80.6|
-
-```
-目标函数(地板优先):
-  J_floor = 0.50·ΔP10 + 0.25·ΔP25 + 0.15·ΔP50 + 0.10·ΔP90
-  J*      = J_floor − λ·R_reg − μ·K − ν·P_cyc
-  Q'      = Q − 0.50·R          # R=能力回退率
-判据:
-  accept  ⇔ ΔP10>0 & ΔP25≥0 & R≈0
-  drop    ⇔ ΔP10<0.05 & ΔP25<0.03
-  revert  ⇔ ΔNaturalness>0 & ΔContinuity<−0.05
-  FAKE    ⇔ ΔCV>0 & ΔACF>0      # 假节奏改善→否决
-实测: ΔFloor/ΔOverall = 1.65    # 左尾修复特征(v4→v5)
+World/GM ──[已确认数据]──> StoryContext ──> Story
 ```
 
-## §3.5 ✅已证实有效路线（EFFECTIVE·优先级从高到低）
-> 级别: S=实测显著且复现 | A=实测方向一致 | B=结构收益已计入基线 | C=有效但成本高
-|级|路径|机制|证据(实测)|
-|---|---|---|---|
-|S|`temp=0.8`|降采样方差|σ_Q 0.456→0.339(−26%)；AI味σ .84→.39｜0成本|
-|S|`thinking=high`|CoT稳定化|σ 0.576→0.330；地板 4.56→7.67｜延迟 9.5→20.1s|
-|A|尾锚@资产末|recency压弱维|抗碎σ .83→.65；整体σ .59→.30|
-|A|以密度治碎(密度下限+中句承载)|承载式长句→碎↓|同池盲排双料第一；肉词/段 3.4→5.0、碎段率 19.9→14.1、段均长 63.3→80.6|
-|A|反碎片条款(禁单句成段/重复短句)|去碎片|AI味名次 4.53→4.07|
-|B|五层化(CORE/FLOW/STYLE/REF/CHECK)|分层+去重|越拍 7/16→0/16；字符 −35.1%|
-|B|去架构语句(v3.1)|删元语/强度标签|真机无显著降、过度激活率↓(0.588vs0.639)|
-|B|条件化/能力路由|规则按需生效|过约束↓|
-|B|词表白名单+同义上限≤2-3|降词层模板|词循环↓|
-|C|best-of-N(oracle)|选择器|均值 8.70→8.96、地板 7.33→8.22｜2×成本|
-```
-排序(性价比): temp0.8 ≥ thinking_high > 尾锚 ≈ 密度治碎 > 五层 > best-of-N
-反向(已证伪,勿加): §5 F1/F2/F3/F4/F6 … 一切"加禁止式规则/加Context行"
+```text
+核心原则
+A. 世界可以复杂；写作输入必须局部。
+B. 长期状态留在World/GM；不把长期状态搬进Writer。
+C. 每轮Story独立生成；禁止依赖Writer侧持久上下文。
+D. system只放写作资产；user只放本轮参考数据。
+E. 输入决定可写范围与质量上限；Writer不能越权补世界。
+F. 按需暴露：没有本轮必要性的信息，不进入本轮StoryContext。
+G. 写作资产负责“怎么写”；StoryContext负责“现在写什么”。
 ```
 
-## §4 验证方法 & 度量(免天花板)
-### V-方法(验证协议·按成本递增)
-```
-V0 静态  : sha256(字面值)==HAGENT_ASSETS_SHA256 & story.py --verify & 离线套件39/39
-V1 绝对  : 9维盲评(0-10) → mean & {P10,P25,P50,P75,P90}
-V2 确定性: AI_struct = ACF_G + ACF_L + 单句成段率 + 短句占比   # 免API,可复现
-V3 因果  : 同-Context分支 A/B(ctxAB) —— 同一C下 有/无变量 → 唯一真实场景干净对照
-V4 基准  : bench_v1(48场景) 全跑 → 分位数
-V5 假节奏: ΔCV>0 & ΔACF>0 → REJECT
-```
-```
-功效: 小效应 d≈0.3 → n≥50/臂 ; n<10 差异=噪声 ; 真实多轮长跑A/B=剧情分叉→不可信
-```
-```
-PRIMARY  AI_struct = ACF_G + ACF_L + 单句成段率 + 短句占比    # ↓好,确定性,免API
-  ACF_X = max_k |corr(x_t, x_{t+k})|, k∈1..5 ; x=段长/句长序列
-BANNED   LLM-AI味判分 : 双峰不可靠 {2:10, 3:1, 8:7, 9:30}；连9分文复判给2 → 弃
-CLEAN_AB 同-Context分支: 同一C生成 有/无 变量 → 唯一真实场景干净因果测法
-BASE     bench_v1 = 48场景(6体位×4气氛×2场所)，纯肉文
-POWER    小效应 d≈0.3 → n≥50/臂；n<10 差异=噪声；真实多轮长跑A/B因剧情分叉=不可信
+## 1. AUTHORITY
+```text
+SOURCE[1] = character/
+SOURCE[2] = worldbook/
+SOURCE[3] = rp/State.md
+SOURCE[4] = rp/History.md
+SOURCE[5] = rp/Summary.md
+SOURCE[6] = Character Agent结果
+SOURCE[7] = 本轮StoryContext
+
+事实有效域 = SOURCE[1..7]中的已给信息
+禁止:
+  infer_new_fact
+  invent_new_event
+  resolve_unknown_by_guess
+  expand_hidden_world_state
+  overwrite_canon
+  retroactively_change_state
+
+StoryContext是World/GM已经完成裁决后的“写作数据快照”。
+Writer不重新判断世界，只消费快照。
 ```
 
-## §5 失败库(反模式→证据→对策)
-|#|症状|机制|证据|对策|
-|---|---|---|---|---|
-|F1|加禁止式结构规则|过约束→换不出一条路|v6: ΔAI味=0,p=1.00|不加,改顺势|
-|F2|显式要求"变异"|逃离一簇→落新簇|v7: 熵↑.72→.76 但ACF↑.362→.394 p=.047|慎用'换形'|
-|F3|撤掉固定结构(只做减法)|模型默认先验接管|v8: 熵↓.72→.67; ACF_G p=.004↑|减法须配正向指令|
-|F4|规则写进system|离user态远,够不到|ACF_G p=.62(归零)|须与状态同处C|
-|F5|只陈述状态无偏置|信号惰性|p=.649|状态+轻微偏置|
-|F6|C注入"最近节奏"行|不泛化到真实C|n=64: ACF_G +.045 p=.072(反向)|撤|
-|F7|结构化字段表示|被当元数据忽略|p=.299,地板更低|用自然语言整句|
-|F8|真实多轮长跑A/B|GM随机→剧情分叉|"输出变短248字"=假象|用同C分支|
-|F9|明喻(像/如/似/仿佛)|1喻废整段|资产内置禁令|删|
-|F10|同义换词循环|词层模板感|资产内置|同场同义≤2-3|
-|F11|段段金句/均匀高能|clean slop|humanizer-stack trap|允许缓拍/留白|
-|F12|环境起手(光/影/风…)|establishing-shot tell|StoryScope|起手即带电细节|
-|F13|否定—修正句(不是X而是Y)|—|维基AI writing|删负面项只陈述正面|
-|F14|升华closer/段末点题|—|同上|删头删尾落回动作|
-|F15|名词化/抽象主语/三件套|—|同上|本词/具体人/留一句|
+## 2. TWO CHANNELS
+```yaml
+# protocol, not natural-language prompt design
+system:
+  role: writing_asset
+  persistence: fixed
+  authority:
+    - writing_scope
+    - prose_constraints
+    - style
+    - quality_target
+    - output_format
+  must_not_contain:
+    - current_story_state
+    - long_history
+    - speculative facts
+    - per-turn world decisions
+    - unnecessary context
 
-## §6 不变式(改动红线)
-```
-I1 事实源唯一 = 角色卡 ∪ 世界书 ∪ 本轮Context ; 不猜不造不裁决
-I2 输出纯正文(无MD/标题/编号/元语/英文/分号)
-I3 视角固定(用户卡→用户恒'你')
-I4 硬限绝不写；软限仅明确触发
-I5 当前拍不跳、不概括、不提前兑现
-```
-```
-改后必过:  sha256(HAGENT_ASSETS)==HAGENT_ASSETS_SHA256
-           & story.py --verify OK
-           & 离线套件 39/39
-           & 有收益主张时: 同-Context A/B @ n≥50, ΔP10/P25 + ACF 判据
+user:
+  role: writing_reference
+  persistence: none
+  authority:
+    - current_scene_data
+    - confirmed_facts
+    - current_beat
+    - characters_present
+    - task
+    - optional_reference_material
+  interpretation:
+    schema_as_data: true
+    do_not_expand_into_control_layer: true
+    do_not_echo_input_as_meta_text: true
 ```
 
-## §7 修改协议
+```text
+SYSTEM = how
+USER   = what/now
+
+不要交换:
+  world_data -> SYSTEM      ✗
+  writing_rules -> USER     ✗
+  long_memory -> Story      ✗
+  writer_decision -> GM     ✗
+
+正确:
+  asset -> SYSTEM
+  local_reference -> USER
+  one-shot prose -> OUT
 ```
-edit → recompute sha256(字面值) → 同步 HAGENT_ASSETS_SRC/SHA256
-     → py_compile + story --verify + suite(39/39)
-     → A/B(ctxAB / bench_v1) → §3判据
-     → dev commit → push main → install.sh → 核验(sha==cloud)
-反向操作(撤): git checkout <base> -- <file> → 同上回归
+
+## 3. CONTEXT
+```text
+C = StoryContext(
+      confirmed_facts,
+      current_scene,
+      current_beat,
+      active_characters,
+      local_state,
+      task,
+      optional_reference
+    )
+
+C仅保留“本轮写作需要”的最小集合。
+
+C的目标:
+  事实足够
+  场景足够
+  当前拍足够
+  任务足够
+  其余删除
+
+C不是:
+  memory dump
+  summary dump
+  worldbook dump
+  prompt extension
+  second-system
+  chain-of-thought
+  future plot
+```
+
+```text
+按需暴露
+need(x, this_turn) = true  -> expose(x)
+need(x, this_turn) = false -> omit(x)
+
+没有证明“本轮需要” => 不暴露。
+上下文越长 ≠ 写作越好。
+```
+
+## 4. GENERATION
+```python
+S = join(NSFW_LAYER, STORY_RUNTIME, HAGENT_ASSETS)
+C = StoryContext(...)
+
+Y = LLM(
+    system=S,
+    user=C,
+    temperature=0.8,
+    thinking="high",
+    max_tokens=32768,
+    stream=True,
+)
+
+RUNS_PER_STORY = 1
+STATEFUL_WRITER = False
+LONG_WRITER_CONTEXT = False
+
+output = Y[story_body_only]
+```
+
+```text
+[GM确认世界]
+      |
+      v
+[最小StoryContext]
+      |
+      +---- system: 固定写作资产
+      |
+      +---- user: 本轮参考数据
+      |
+      v
+   [1×LLM]
+      |
+      v
+ [纯正文 Story]
+
+生成完成 => Writer上下文即废弃
+下一轮 = 新Context + 同一写作资产
+```
+
+## 5. ASSET
+```text
+PRIORITY:
+  事实 > 文采
+  人物 > 装饰
+  本轮任务 > 偏好
+  当前拍 > 未来结果
+
+CORE
+  scope
+  authority
+  fact boundary
+  viewpoint
+  pure output
+
+FLOW
+  current event chain
+  current beat
+  scene continuity
+  pacing
+  tension progression
+
+STYLE
+  Chinese natural prose
+  sensory concreteness
+  dialogue
+  body/action relation
+  density control
+  anti-template
+  word choice
+
+REFERENCE
+  optional lexical/material reference
+  whitelist
+  examples
+  sound/action/state vocabulary
+  optional ≠ coverage requirement
+
+CHECK
+  before-decision checks
+  before-delivery checks
+
+TAIL
+  sentence complete
+  paragraph has movement
+  concrete over abstract
+  no AI-ish exposition
+  momentum tightens naturally
+```
+
+```text
+CORE -> define boundary
+FLOW -> define beat
+STYLE -> define sentence
+REFERENCE -> provide material
+CHECK -> remove defects
+TAIL -> define finish
+```
+
+```text
+TAIL is not a second prompt.
+TAIL is the final quality anchor.
+```
+
+## 6. WRITING
+```text
+WRITE:
+  当前拍
+  当前人
+  当前动作
+  当前感官
+  当前关系
+  当前张力
+
+DO NOT WRITE:
+  未给事实
+  下一拍已确认内容
+  世界设定解释
+  作者旁白式总结
+  回顾性长摘要
+  提示词说明
+  元话语
+  “为了推动剧情”之类的意图解释
+```
+
+```text
+场景原则
+  action > exposition
+  concrete > abstract
+  local > global
+  present > retrospective
+  interaction > explanation
+  variation由场景自然产生，不由规则强行制造
+```
+
+```text
+句段
+  允许长短变化
+  张力上升时自然收紧
+  高潮可以短
+  缓拍允许长句/留白
+  禁止机械比例
+  禁止为了“像自然文”而刻意制造节奏纹理
+
+反碎片基线:
+  避免单句成段连续出现
+  避免重复短句尾
+  避免三连模板短句
+  极短句仅在动作/失控/冲击有真实语义时使用
+
+密度:
+  只在内容确实需要时提高具体词密度
+  用承载式中句同时承接动作/反应/声音/液体等
+  不为了达成数字而填词
+```
+
+## 7. REFERENCES
+```text
+REFERENCE是材料池，不是任务清单。
+
+RULE:
+  choose when useful
+  omit when unnecessary
+  repeat a stable term rather than forced synonym cycling
+
+同场同义词:
+  <= 2~3为基线
+  无自然替换 => 重复正确词
+
+REFERENCE缺失:
+  -> 正常写
+  -> 不制造伪细节
+```
+
+## 8. QUALITY_MODEL
+```text
+Q     = mean(9-dim blind rating)
+Floor = P10(Q)
+
+优化顺序:
+  1. 左尾
+  2. 中位数
+  3. 上尾
+
+J_floor = 0.50·ΔP10 + 0.25·ΔP25 + 0.15·ΔP50 + 0.10·ΔP90
+```
+
+```text
+已验证结论
+1. Prompt工程有效，但主要表现为:
+   - 左尾改善
+   - 输出方差下降
+   - 中位数向高分移动
+   - 稳定性改善
+
+2. 存在平台期:
+   继续叠加规则 ≠ 持续提升
+   复杂度增加不能假设带来突破
+
+3. sampling:
+   temp=0.8
+   thinking=high
+   -> 已证实为当前有效基线
+
+4. asset尾锚:
+   -> 已证实对弱维稳定有帮助
+
+5. 密度治碎:
+   -> 已证实比机械“反碎片禁令”更可靠
+
+6. best-of-N:
+   -> 能提升上限，但增加成本；不是默认写作路径
+```
+
+## 8.5. EXPERIMENTAL_PRIOR
+```text
+temp 1.0 -> 0.8:
+  mean 8.70 -> 8.67
+  sigma 0.456 -> 0.339
+  P10 7.33 -> 7.44
+
+temp0.8 + tail anchor:
+  mean 8.76
+  sigma 0.309
+  P10 7.56
+
+thinking=high:
+  sigma 0.576 -> 0.330
+  P10 4.56 -> 7.67
+  latency 9.5s -> 20.1s
+
+best-of-2 oracle:
+  mean 8.70 -> 8.96
+  P10 7.33 -> 8.22
+  cost ~= 2x
+
+density anti-fragment:
+  meat/paragraph 3.4 -> 5.0
+  fragment rate 19.9 -> 14.1
+  paragraph mean 63.3 -> 80.6 chars
+```
+
+```text
+INTERPRETATION:
+  prompt engineering = robust floor/median optimizer
+  not = unlimited ceiling breaker
+  more rules after plateau = risk > expected gain
+```
+
+## 9. CONTEXT_ENGINEERING
+```text
+结论:
+  本项目已将“长Context/上下文工程”视为高风险项，而非默认优化项。
+
+最新实验事实:
+  N=128 A/B
+  context engineering = harmful
+  long-form = AI flavor worsened
+
+=> DEFAULT:
+  clean context
+  local context
+  one-shot generation
+
+=> NOT DEFAULT:
+  long history injection
+  large summary injection
+  context-side style control
+  per-turn rhythm injection
+  additional context control rows
+  writer-side memory
+```
+
+```text
+重要区分
+
+“上下文短”不是目标。
+“上下文最小但足够”才是目标。
+
+“没有Context”不是目标。
+“只给本轮需要的数据”才是目标。
+```
+
+## 10. FAILURE_PRIOR
+```text
+F01 加禁止式结构规则过多
+    -> 过约束
+    -> 失去自然路径
+
+F02 强制要求“变异/变化/换形”
+    -> 从旧模板簇跳到新模板簇
+
+F03 只做减法，不给正向写作能力
+    -> 默认先验接管
+
+F04 把写作控制规则塞进user数据
+    -> data / instruction边界污染
+
+F05 把世界状态塞进system
+    -> system负载增大
+    -> 写作资产与世界数据纠缠
+
+F06 向Context追加“最近节奏/上一轮风格”等控制语句
+    -> 长期不泛化
+    -> 形成伪控制层
+
+F07 结构化字段过度暴露
+    -> 模型把它当元数据
+    -> 写作信号衰减
+
+F08 真实多轮A/B直接比较
+    -> GM随机性造成剧情分叉
+    -> 输出长度/质量差异不可归因
+
+F09 同义词循环
+    -> 词层模板感
+
+F10 段段高能/段段金句
+    -> clean slop
+
+F11 环境起手过多
+    -> establishing-shot tell
+
+F12 否定-修正句
+    -> AI writing信号
+
+F13 抽象总结/升华收尾
+    -> 作者腔
+
+F14 为了指标填词
+    -> density作弊
+```
+
+## 11. HARD_INVARIANTS
+```text
+I1 事实源唯一
+    role card ∪ worldbook ∪ confirmed StoryContext
+
+I2 Writer无Canon权
+    不裁决冲突
+    不补缺失事实
+    不改变State
+
+I3 Writer无长期记忆
+    不持有跨轮叙事状态
+
+I4 StoryContext最小充分
+    required data only
+
+I5 system固定为写作资产
+    不承载本轮世界事实
+
+I6 user承载本轮参考数据
+    不扩写成新的控制体系
+
+I7 当前拍不跳
+    不提前兑现未来事件
+    不概括替代现场
+
+I8 输出纯正文
+    无标题
+    无Markdown
+    无编号
+    无元语
+    无英文说明
+
+I9 写作不越权
+    输入没有 => 不创造
+    输入不确定 => 不猜
+    输入已确认 => 只在其范围内表达
+```
+
+## 12. EXPERIMENT
+```text
+目的:
+  验证“是否改善真实写作”
+  而不是验证“是否更像某个指标”
+
+CLEAN_AB:
+  same C
+  same model
+  same sampling
+  same asset baseline
+  only ONE variable differs
+
+禁止:
+  multi-round divergent A/B
+  simultaneously changing prompt+context+sampling
+  n<10后下结论
+```
+
+```text
+PRIMARY:
+  P10 / P25 / P50
+
+SECONDARY:
+  AI_struct
+  fragment rate
+  paragraph length
+  sentence-length autocorrelation
+
+FAKE_REJECT:
+  ΔCV > 0 and ΔACF > 0
+
+ACCEPT:
+  ΔP10 > 0
+  and ΔP25 >= 0
+  and regression ~= 0
+
+DROP:
+  ΔP10 < 0.05
+  and ΔP25 < 0.03
+```
+
+## 13. CHANGE_POLICY
+```text
+任何资产改动先问:
+  Q1 是否解决真实缺陷？
+  Q2 是否必须写入system？
+  Q3 能否由更小的局部规则完成？
+  Q4 是否会增加上下文负担？
+  Q5 是否可能与StoryContext重复？
+  Q6 是否引入新的“控制层”？
+
+DEFAULT_DECISION:
+  no clear gain -> keep baseline
+  local fix -> prefer local asset change
+  context addition -> high scrutiny
+  architecture change -> reject unless experiment requires it
+```
+
+```text
+不要因为“模型可能忘记”就加Context。
+先问:
+  该信息是否本轮必须？
+  是否已经属于World/GM职责？
+  是否可以由更小的StoryContext表达？
+
+不要因为“写得不够丰富”就加规则。
+先问:
+  输入是否不足？
+  资产是否不足？
+  还是模型已经到达当前能力边界？
+```
+
+## 14. BUILD
+```text
+edit HAGENT_ASSETS
+ -> recompute sha256(literal)
+ -> sync HAGENT_ASSETS_SRC/SHA256
+ -> py_compile
+ -> story.py --verify
+ -> offline suite 39/39
+ -> CLEAN_AB when making a causal claim
+ -> commit
+ -> install
+ -> sha256(cloud)==local
+```
+
+## 15. FINAL
+```text
+ARCH =
+  World/GM = persistent runtime
+  StoryContext = ephemeral interface
+  Story = stateless one-shot writer
+
+INPUT =
+  system: writing asset
+  user: minimal local reference data
+
+RULE =
+  expose only what this turn needs
+  write only what input permits
+  never let Writer acquire GM authority
+
+QUALITY =
+  prompt engineering -> left-tail / median optimization
+  long-context engineering -> not default; current evidence harmful
+  input quality -> output quality ceiling
+  one-shot local generation -> baseline
 ```
