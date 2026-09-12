@@ -9,16 +9,16 @@
 
 ```mermaid
 flowchart TB
-    P[玩家] <--> Play[play.py · 玩家 IO]
-    Play <--> Agent[agent.py · World / GM · Canon]
-    Agent --> Run[run · 唯一 Model-facing Tool]
-    Run --> FS[character/ worldbook/ rp/]
-    Agent -. 需要角色局部表现 .-> Sub[subagent.py · Character Agent]
+    P["玩家"] <--> Play["play.py · 玩家 IO"]
+    Play <--> Agent["agent.py · World / GM · Canon"]
+    Agent --> Run["run · 唯一 Model-facing Tool"]
+    Run --> FS["character/ worldbook/ rp/"]
+    Agent -. "需要角色局部表现" .-> Sub["subagent.py · Character Agent"]
     Sub --> Agent
-    Agent -- Story Context --> Story[story.py · Story Agent]
-    Story -- Story 正文 --> Agent
-    Agent -. MTP：并行 N 个普通 story.py（默认关） .-> Story
-    Agent -- Story + 可选 Options --> Play
+    Agent -- "Story Context" --> Story["story.py · Story Agent"]
+    Story -- "Story 正文" --> Agent
+    Agent -. "MTP 后台预测（默认关）" .-> Story
+    Agent -- "Story + 可选 Options" --> Play
 ```
 
 ## 主循环
