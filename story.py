@@ -10,8 +10,8 @@ H-agent 成熟叙事资产已统一为单一 HAGENT_ASSETS，内嵌本文件，v
 """
 import argparse, hashlib as _hashlib, json, os, sys, urllib.error, urllib.request
 
-HAGENT_ASSETS_SRC = 'v5.2 · v5.1+承前避复（Context「# 最近节奏」存在时避免机械重复前一段的推进/收束；v9实测：段长周期性 ACF_G −0.059 p=0.034，质量无回退）'
-HAGENT_ASSETS_SHA256 = '3b5904dcd2c239ad6e304c9ad92ccd666a5bf27c3dbe4cd917be4ad17a28378c'
+HAGENT_ASSETS_SRC = 'v5.1 · v5+质量锚（4条定稿标准：句子成句/段有可见动静/零AI腔/越写越紧）+ temperature=0.8（研究：σ −32%、AI味方差↓、碎句↓）'
+HAGENT_ASSETS_SHA256 = '58cf06c11aa117b2f5dc693d4c7584bb0412d79476bff61071482a48c824f991'
 HAGENT_ASSETS = """
 # ========== 中文官能小说写作规范 ==========
 # 冲突时：事实 > 文采｜人物 > 装饰｜本轮任务 > 可有可无的偏好
@@ -31,10 +31,6 @@ HAGENT_ASSETS = """
 11. 具体性优先：每段至少一处可触摸的物或正在发生的动作；具体 > 辞藻，动作/物件 > 形容词。
 
 ## [FLOW] 现在写什么（当前场景如何继续发生）
-### 承前避复（若 Context 给出「# 最近节奏」）
-按「# 最近节奏」那行描述的**前一段推进方式与收束方式**，本拍不要机械重复它：前文以对白为主则少用对白起手；前文段末闭合则让本段半路停在动作或物件上；尽量不连续两拍用同一种“推进+收束”组合。
-Context 未给出该行时，若 Context 另有前文则据它判断，判断不了就正常写、不要臆造。
-
 ### 事件链（优先）
 事件 → 行动 → 反应 → 后果 → 下一行动
 禁止：事件 → 总结 → 直接跳结论
