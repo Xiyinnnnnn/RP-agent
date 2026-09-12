@@ -203,6 +203,8 @@ subagent 返回该角色局部结果 → GM 判断是否真实发生、是否形
   # Relevant Characters      相关角色卡关键信息（如需要）
   # Relevant World Book      相关世界书信息（如需要）
   # Character Agent Results  本轮 Character Agent 输出（如有）
+  # 最近节奏                 上一段 Story 主要由什么推进（动作/对白/心理/环境）、以什么收束
+                           （一行，例：上一段主要由对白推进、以动作收束；无上一段则整块不写）
   # Story Task               本轮叙事任务 / 场景与连续性要求
   EOF
 
