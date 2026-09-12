@@ -547,20 +547,35 @@ flowchart LR
 ## 12. 数据流：不允许跨边界的回写
 
 ```mermaid
-flowchart TB
-    STORY[Story正文]
-    GM[GM Canon]
-    STATE[State]
-    PLAYER[Player]
+flowchart LR
+    PLAYER["Player"]
+    GM["GM / Canon"]
+    CHAR["Character Agent"]
+    STATE["State"]
+    HISTORY["History"]
+    SUMMARY["Summary"]
+    WORLD["WorldBook"]
+    CONTEXT["Story Context"]
+    STORY["Story Agent"]
+    OUTPUT["Story"]
 
-    STORY --> PLAYER
     PLAYER --> GM
-    GM --> STATE
 
-    STORY -.x.-> STATE
-    STORY -.x.-> GM
-    STORY -.x.-> WorldBook
-    CharacterResult -.x.-> STATE
+    STATE --> GM
+    HISTORY --> GM
+    SUMMARY --> GM
+    WORLD --> GM
+
+    GM --> STATE
+    GM --> HISTORY
+    GM --> SUMMARY
+
+    GM --> CONTEXT
+    CHAR --> GM
+
+    CONTEXT --> STORY
+    STORY --> OUTPUT
+    OUTPUT --> PLAYER
 ```
 
 ```text
