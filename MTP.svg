@@ -1,0 +1,506 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1500"
+     height="900"
+     viewBox="0 0 1500 900">
+
+  <rect width="1500" height="900" fill="#0b0f14"/>
+
+  <style>
+    text {
+      font-family: "JetBrains Mono", "Noto Sans CJK SC",
+                   "Source Han Sans SC", "Microsoft YaHei", monospace;
+      fill: #d7dde5;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .label {
+      font-size: 15px;
+    }
+
+    .small {
+      font-size: 13px;
+      fill: #919aa7;
+    }
+
+    .tiny {
+      font-size: 12px;
+      fill: #747e8b;
+    }
+
+    .axis {
+      stroke: #3b4654;
+      stroke-width: 1.5;
+    }
+
+    .main {
+      stroke: #d7dde5;
+      stroke-width: 2.2;
+      fill: none;
+    }
+
+    .candidate {
+      stroke: #6e7b8c;
+      stroke-width: 1.6;
+      fill: none;
+    }
+
+    .kept {
+      stroke: #e3e8ee;
+      stroke-width: 2.4;
+      fill: none;
+    }
+
+    .invalid {
+      stroke: #343d49;
+      stroke-width: 1.2;
+      stroke-dasharray: 5 6;
+      fill: none;
+    }
+
+    .event {
+      stroke: #4c5868;
+      stroke-width: 1;
+      stroke-dasharray: 3 6;
+    }
+
+    .dot {
+      fill: #d7dde5;
+    }
+
+    .muted {
+      fill: #697484;
+    }
+
+    .selected {
+      fill: #f0f3f7;
+      font-weight: 700;
+    }
+  </style>
+
+  <!-- =========================================================
+       标题
+       ========================================================= -->
+  <text x="70" y="55" class="title">
+    MTP · 候选剧情树 / 用户输入确定一级候选
+  </text>
+
+  <!-- =========================================================
+       顶部时间轴
+       ========================================================= -->
+  <line x1="80" y1="100" x2="1420" y2="100" class="axis"/>
+
+  <line x1="120" y1="87" x2="120" y2="113" class="axis"/>
+  <text x="120" y="78" text-anchor="middle" class="small">用户输入₀</text>
+
+  <line x1="310" y1="87" x2="310" y2="113" class="axis"/>
+  <text x="310" y="78" text-anchor="middle" class="small">故事产出</text>
+
+  <line x1="490" y1="87" x2="490" y2="113" class="axis"/>
+  <text x="490" y="78" text-anchor="middle" class="small">GM 消费</text>
+
+  <line x1="670" y1="87" x2="670" y2="113" class="axis"/>
+  <text x="670" y="78" text-anchor="middle" class="small">GM 决策</text>
+
+  <line x1="850" y1="87" x2="850" y2="113" class="axis"/>
+  <text x="850" y="78" text-anchor="middle" class="small">GM 展出</text>
+
+  <line x1="1050" y1="87" x2="1050" y2="113" class="axis"/>
+  <text x="1050" y="78" text-anchor="middle" class="small">用户消费</text>
+
+  <line x1="1370" y1="87" x2="1370" y2="113" class="axis"/>
+  <text x="1370" y="78" text-anchor="middle" class="small">用户输入₁</text>
+
+
+  <!-- =========================================================
+       上半部：实际运行主链
+       用户输入 → 故事产出 → GM消费 → GM决策 → GM展出 → 用户消费
+       ========================================================= -->
+
+  <text x="90" y="150" class="label">实际运行链</text>
+
+  <!-- 主线 -->
+  <line x1="120" y1="195" x2="310" y2="195" class="main"/>
+  <line x1="310" y1="195" x2="490" y2="195" class="main"/>
+  <line x1="490" y1="195" x2="670" y2="195" class="main"/>
+  <line x1="670" y1="195" x2="850" y2="195" class="main"/>
+  <line x1="850" y1="195" x2="1370" y2="195" class="main"/>
+
+  <!-- 事件点 -->
+  <circle cx="120" cy="195" r="5" class="dot"/>
+  <circle cx="310" cy="195" r="5" class="dot"/>
+  <circle cx="490" cy="195" r="5" class="dot"/>
+  <circle cx="670" cy="195" r="5" class="dot"/>
+  <circle cx="850" cy="195" r="5" class="dot"/>
+  <circle cx="1370" cy="195" r="5" class="dot"/>
+
+  <!-- 标签 -->
+  <text x="120" y="180" text-anchor="middle" class="label">
+    用户输入₀
+  </text>
+
+  <text x="310" y="180" text-anchor="middle" class="label">
+    故事产出
+  </text>
+  <text x="310" y="220" text-anchor="middle" class="tiny">
+    Story₀
+  </text>
+
+  <text x="490" y="180" text-anchor="middle" class="label">
+    GM 消费
+  </text>
+  <text x="490" y="220" text-anchor="middle" class="tiny">
+    消费 Story₀
+  </text>
+
+  <text x="670" y="180" text-anchor="middle" class="label">
+    GM 决策
+  </text>
+  <text x="670" y="220" text-anchor="middle" class="tiny">
+    确定下一步分支
+  </text>
+
+  <text x="850" y="180" text-anchor="middle" class="label">
+    GM 展出
+  </text>
+  <text x="850" y="220" text-anchor="middle" class="tiny">
+    Story₀ → 用户
+  </text>
+
+  <text x="1120" y="180" text-anchor="middle" class="label">
+    用户消费
+  </text>
+  <text x="1120" y="220" text-anchor="middle" class="tiny">
+    阅读 / 思考 / 输入前的体验窗口
+  </text>
+
+  <text x="1370" y="180" text-anchor="middle" class="label">
+    用户输入₁
+  </text>
+
+
+  <!-- =========================================================
+       用户消费时间窗口
+       ========================================================= -->
+
+  <line x1="850" y1="265"
+        x2="1370" y2="265"
+        class="candidate"/>
+
+  <circle cx="850" cy="265" r="4" class="dot"/>
+  <circle cx="1370" cy="265" r="4" class="dot"/>
+
+  <text x="1110" y="255"
+        text-anchor="middle"
+        class="small">
+    W_user
+  </text>
+
+  <text x="1110" y="292"
+        text-anchor="middle"
+        class="tiny">
+    当前 Story 展出后 → 下一次用户输入
+  </text>
+
+
+  <!-- =========================================================
+       MTP：D1
+       从 GM 决策之后启动
+       ========================================================= -->
+
+  <text x="90" y="350" class="label">MTP · D1</text>
+
+  <line x1="670" y1="375"
+        x2="790" y2="375"
+        class="candidate"/>
+
+  <circle cx="670" cy="375" r="4" class="dot"/>
+  <circle cx="790" cy="375" r="4" class="dot"/>
+
+  <text x="670" y="360"
+        text-anchor="middle"
+        class="small">
+    GM 决策后
+  </text>
+
+  <text x="790" y="360"
+        text-anchor="middle"
+        class="small">
+    预测 Story₁
+  </text>
+
+  <!-- 3 个一级候选 -->
+  <line x1="790" y1="375" x2="875" y2="335" class="candidate"/>
+  <line x1="790" y1="375" x2="875" y2="375" class="candidate"/>
+  <line x1="790" y1="375" x2="875" y2="415" class="candidate"/>
+
+  <circle cx="875" cy="335" r="4" class="dot"/>
+  <circle cx="875" cy="375" r="4" class="dot"/>
+  <circle cx="875" cy="415" r="4" class="dot"/>
+
+  <text x="895" y="340" class="label">Story₁-A</text>
+  <text x="895" y="380" class="label">Story₁-B</text>
+  <text x="895" y="420" class="label">Story₁-C</text>
+
+  <text x="790" y="445"
+        text-anchor="middle"
+        class="tiny">
+    3 个一级候选
+  </text>
+
+
+  <!-- =========================================================
+       GM 消费预测结果
+       ========================================================= -->
+
+  <text x="90" y="490" class="label">GM 消费 / 决策₂</text>
+
+  <!-- A -->
+  <line x1="875" y1="335"
+        x2="1020" y2="335"
+        class="candidate"/>
+
+  <circle cx="1020" cy="335" r="4" class="dot"/>
+
+  <text x="1020" y="323"
+        text-anchor="middle"
+        class="tiny">
+    GM-A
+  </text>
+
+  <!-- B -->
+  <line x1="875" y1="375"
+        x2="1020" y2="375"
+        class="candidate"/>
+
+  <circle cx="1020" cy="375" r="4" class="dot"/>
+
+  <text x="1020" y="363"
+        text-anchor="middle"
+        class="tiny">
+    GM-B
+  </text>
+
+  <!-- C -->
+  <line x1="875" y1="415"
+        x2="1020" y2="415"
+        class="candidate"/>
+
+  <circle cx="1020" cy="415" r="4" class="dot"/>
+
+  <text x="1020" y="403"
+        text-anchor="middle"
+        class="tiny">
+    GM-C
+  </text>
+
+
+  <!-- =========================================================
+       MTP：D2
+       每个 Story₁ 各自继续预测 3 个 Story₂
+       形成 9 个候选
+       ========================================================= -->
+
+  <text x="90" y="535" class="small">
+    D2 · 3 → 9
+  </text>
+
+  <!-- A → A1/A2/A3 -->
+  <line x1="1020" y1="335" x2="1100" y2="310" class="candidate"/>
+  <line x1="1020" y1="335" x2="1100" y2="335" class="candidate"/>
+  <line x1="1020" y1="335" x2="1100" y2="360" class="candidate"/>
+
+  <circle cx="1100" cy="310" r="4" class="dot"/>
+  <circle cx="1100" cy="335" r="4" class="dot"/>
+  <circle cx="1100" cy="360" r="4" class="dot"/>
+
+  <line x1="1100" y1="310" x2="1210" y2="310" class="candidate"/>
+  <line x1="1100" y1="335" x2="1210" y2="335" class="candidate"/>
+  <line x1="1100" y1="360" x2="1210" y2="360" class="candidate"/>
+
+  <circle cx="1210" cy="310" r="4" class="dot"/>
+  <circle cx="1210" cy="335" r="4" class="dot"/>
+  <circle cx="1210" cy="360" r="4" class="dot"/>
+
+  <text x="1230" y="315" class="label">A1</text>
+  <text x="1230" y="340" class="label">A2</text>
+  <text x="1230" y="365" class="label">A3</text>
+
+
+  <!-- B → B1/B2/B3 -->
+  <line x1="1020" y1="375" x2="1100" y2="420" class="invalid"/>
+  <line x1="1020" y1="375" x2="1100" y2="445" class="invalid"/>
+  <line x1="1020" y1="375" x2="1100" y2="470" class="invalid"/>
+
+  <circle cx="1100" cy="420" r="3.5" class="muted"/>
+  <circle cx="1100" cy="445" r="3.5" class="muted"/>
+  <circle cx="1100" cy="470" r="3.5" class="muted"/>
+
+  <line x1="1100" y1="420" x2="1210" y2="420" class="invalid"/>
+  <line x1="1100" y1="445" x2="1210" y2="445" class="invalid"/>
+  <line x1="1100" y1="470" x2="1210" y2="470" class="invalid"/>
+
+  <text x="1230" y="425" class="tiny muted">B1</text>
+  <text x="1230" y="450" class="tiny muted">B2</text>
+  <text x="1230" y="475" class="tiny muted">B3</text>
+
+
+  <!-- C → C1/C2/C3 -->
+  <line x1="1020" y1="415" x2="1100" y2="530" class="invalid"/>
+  <line x1="1020" y1="415" x2="1100" y2="555" class="invalid"/>
+  <line x1="1020" y1="415" x2="1100" y2="580" class="invalid"/>
+
+  <circle cx="1100" cy="530" r="3.5" class="muted"/>
+  <circle cx="1100" cy="555" r="3.5" class="muted"/>
+  <circle cx="1100" cy="580" r="3.5" class="muted"/>
+
+  <line x1="1100" y1="530" x2="1210" y2="530" class="invalid"/>
+  <line x1="1100" y1="555" x2="1210" y2="555" class="invalid"/>
+  <line x1="1100" y1="580" x2="1210" y2="580" class="invalid"/>
+
+  <text x="1230" y="535" class="tiny muted">C1</text>
+  <text x="1230" y="560" class="tiny muted">C2</text>
+  <text x="1230" y="585" class="tiny muted">C3</text>
+
+
+  <!-- =========================================================
+       用户输入₁：只确定旧候选 A
+       不重新生成；直接保留 A 已有的三个 D2 结果
+       ========================================================= -->
+
+  <line x1="1370" y1="140"
+        x2="1370" y2="650"
+        class="event"/>
+
+  <text x="1370" y="680"
+        text-anchor="middle"
+        class="label selected">
+    用户输入₁
+  </text>
+
+  <text x="1345" y="535"
+        text-anchor="end"
+        class="selected">
+    确定：Story₁-A
+  </text>
+
+
+  <!-- A1/A2/A3 保留 -->
+  <line x1="1210" y1="310"
+        x2="1370" y2="310"
+        class="kept"/>
+
+  <line x1="1210" y1="335"
+        x2="1370" y2="335"
+        class="kept"/>
+
+  <line x1="1210" y1="360"
+        x2="1370" y2="360"
+        class="kept"/>
+
+  <circle cx="1370" cy="310" r="5" class="dot"/>
+  <circle cx="1370" cy="335" r="5" class="dot"/>
+  <circle cx="1370" cy="360" r="5" class="dot"/>
+
+  <text x="1345" y="307"
+        text-anchor="end"
+        class="selected">
+    A1 保留
+  </text>
+
+  <text x="1345" y="332"
+        text-anchor="end"
+        class="selected">
+    A2 保留
+  </text>
+
+  <text x="1345" y="357"
+        text-anchor="end"
+        class="selected">
+    A3 保留
+  </text>
+
+
+  <!-- B/C 失效 -->
+  <text x="1280" y="475"
+        class="tiny muted">
+    B / C 及其 D2 预测失效
+  </text>
+
+
+  <!-- =========================================================
+       保留下来的下一步
+       ========================================================= -->
+
+  <line x1="1370" y1="310"
+        x2="1420" y2="310"
+        class="kept"/>
+
+  <line x1="1370" y1="335"
+        x2="1420" y2="335"
+        class="kept"/>
+
+  <line x1="1370" y1="360"
+        x2="1420" y2="360"
+        class="kept"/>
+
+  <text x="1420" y="400"
+        text-anchor="end"
+        class="label">
+    继续消费 / 继续预测
+  </text>
+
+
+  <!-- =========================================================
+       底部：结构总结
+       ========================================================= -->
+
+  <line x1="90" y1="745"
+        x2="1410" y2="745"
+        class="axis"/>
+
+  <text x="90" y="785" class="small">
+    主链
+  </text>
+
+  <text x="150" y="785" class="label">
+    用户输入 → 故事产出 → GM消费 → GM决策 → GM展出 → 用户消费 → 用户输入
+  </text>
+
+  <text x="90" y="825" class="small">
+    预测
+  </text>
+
+  <text x="150" y="825" class="label">
+    1 → 3 → 9
+  </text>
+
+  <text x="300" y="825" class="small">
+    用户输入₁只确定一级候选
+  </text>
+
+  <text x="560" y="825" class="label selected">
+    A
+  </text>
+
+  <text x="620" y="825" class="small">
+    已预测结果直接保留
+  </text>
+
+  <text x="850" y="825" class="label selected">
+    A1 / A2 / A3
+  </text>
+
+  <text x="90" y="865" class="small">
+    时间约束
+  </text>
+
+  <text x="230" y="865" class="label">
+    T(D1) + T(Story₁) + T(GM消费) + T(D2) ≲ W_user
+  </text>
+
+</svg>
