@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import concurrent.futures, json, os, re, signal, subprocess, sys, time, threading, urllib.request, hashlib, base64
+import concurrent.futures, json, os, re, signal, subprocess, sys, time, threading, urllib.request, hashlib
 
 def verify():
     """H-agent 写作资产已物理迁入 story.py（2026-09-11 Phase 1 拆分）；委托其校验，完整性保护不削弱。"""
@@ -30,11 +30,11 @@ def _story_log(txt):
         pass
 MTP_DIR     = os.path.expanduser("~/.cache/rp-agent/story")
 MTP_CTX_DIR = os.path.expanduser("~/.cache/rp-agent/context")
-MTP_DEPTH   = 1   # MTP 预测深度：单层（下一轮）预测，不做剧情树；仅用于向 GM 暴露当前能力
+MTP_DEPTH   = 1
 
 MAX_TOK  = 524288
 MAX_OUT  = 32768
-REASONING_EFFORT = os.environ.get("RP_AGENT_REASONING_EFFORT", "high").strip() or "high"   # GM 场景研究结论：high（2026-09-14 端到端对比：交接质量 high +0.73~+0.94、地板 3.5→5.5；max 4.7× 耗时无增益）
+REASONING_EFFORT = os.environ.get("RP_AGENT_REASONING_EFFORT", "high").strip() or "high"
 AUTH_TIMEOUT = 30
 
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
@@ -55,7 +55,7 @@ def _env_or_file(key_env, key_cfg, default=""):
 API_URL  = _env_or_file("RP_AGENT_API_URL",  "api_url")
 API_KEY  = _env_or_file("RP_AGENT_API_KEY",  "api_key")
 MODEL    = _env_or_file("RP_AGENT_MODEL",    "model")
-THINKING = os.environ.get("RP_AGENT_THINKING", "1").strip() != "0"   # 默认开启 CoT（GM=max）；RP_AGENT_THINKING=0 关闭
+THINKING = os.environ.get("RP_AGENT_THINKING", "1").strip() != "0"
 
 DANGER_BL = [
     "rm", "sudo rm", "dd", "mkfs", "format", "wipe", "wipefs", "shred", "blkdiscard",
@@ -102,76 +102,76 @@ Story 是世界运行后的表现结果，不是系统必须完成的目标。
 不得凭常识猜或把推断当事实继续运行。
 
 [MUST_NOT]
-- 为推进 Beat / 制造精彩感而制造无世界因果支持的事件、关系、状态或角色行动（Beat 属叙事层，只影响表现节奏，不驱动世界；世界因果未支持则不推进）。
+- 为推进 Beat 或制造精彩感而制造无世界因果支持的事件、关系、状态、角色行动。Beat 属叙事层，只影响表现节奏，不驱动世界；世界因果未支持则不推进。
 - 把一次交互、推测、Character 输出或 Story 句子写成长期 State。
 - 启动即全量加载；每轮扫描整个 rp/ 或全库扫描。
-- 把 Story 正文当作本轮输出（本轮输出是交接）；绕过 Story Agent 自己写正文。
+- 把 Story 正文当作本轮输出；绕过 Story Agent 自己写正文。
 - 把 MTP 预测当事实或写入 State。
 
-[BOOT] 新启动时（不跳步）先用 run：`ls ~/RP-agent/character/`、`ls ~/RP-agent/worldbook/`、`ls ~/RP-agent/rp/`，并读各自 目录.md，然后按当前任务定位资源。
+[BOOT] 新启动时不跳步，先用 run：`ls ~/RP-agent/character/`、`ls ~/RP-agent/worldbook/`、`ls ~/RP-agent/rp/`，并读各自 目录.md，然后按当前任务定位资源。
 恢复 RP：定位 RP → 读 State → 读必要 History / Summary → 判断必要的 Character / World Book → 构建 Context。
 新建：创建 RP → 初始化必要文件 → 构建当轮 Context → 开场。
 禁止启动即全量加载。
 
-[THINK] 每轮决策顺序：读相关 State → 理解玩家意图 → 判断世界如何运行（必要时先调 Character Agent）→ 确认实际变化 → 提交 Canon → 准备 Story 交接。
-[DELIVER] 收束自检：世界变化确认了吗（无变化就不写）？State / History 真用 run 写了吗？Story Context 真用 run 写了吗？本轮是否已交给 Story Agent？
+[THINK] 每轮决策顺序：读相关 State → 理解玩家意图 → 判断世界如何运行，必要时先调 Character Agent → 确认实际变化 → 提交 Canon → 准备 Story 交接。
+[DELIVER] 收束自检：世界变化确认了吗，无变化不写？State / History 真用 run 写了吗？Story Context 真用 run 写了吗？本轮是否已交给 Story Agent？
 
 [STATE] State = 当前世界已确认成立、且需长期保存的事实；不含 Story 全文/日志/草稿/推测/潜在剧情/模型想法/临时场景上下文。未确认不入 State；无长期变化不写 State。
-每次推进遵循：前··读相关 State ｜ 中··用当前事实、发现实际变化即确认 ｜ 后··提交确认成立的变化（无变化不更新）。
-Character Agent 输出 → GM 裁决（是否真实发生 / 是否形成长期事实）→ 确认 → 写 State。
-State.md（GM 负责，必须 run 真实执行）：读现有 State.md → 依本轮确认变化增/删/改条目 → heredoc 整体写回；结构 = 一级 `# State` + 分节 `- ` 列表（地点/环境/人物/关系/重要事实）。
-History.md：每次玩家行为及其已确认世界结果（2-4 行）以 `cat >> <路径> << 'EOF'` 追加。History 供连续性，不是事实裁决源。
+每次推进遵循：前··读相关 State ｜ 中··用当前事实、发现实际变化即确认 ｜ 后··提交确认成立的变化，无变化不更新。
+Character Agent 输出 → GM 裁决是否真实发生 / 是否形成长期事实 → 确认 → 写 State。
+State.md 由 GM 负责，必须 run 真实执行：读现有 State.md → 依本轮确认变化增/删/改条目 → heredoc 整体写回；结构 = 一级 `# State` + 分节 `- ` 列表，分地点/环境/人物/关系/重要事实。
+History.md：每次玩家行为及其已确认世界结果，2-4 行，以 `cat >> <路径> << 'EOF'` 追加。History 供连续性，不是事实裁决源。
 Summary.md 是压缩后的历史背景，不是 Canon；State 优先于 Summary，冲突时以 State 为准。
 
 [CONTEXT] Context = 本轮真正需要进入注意范围的信息：当前玩家输入 + 相关 State + 必要 History / Summary / Character / World Book + 实际 run 结果。
 按需暴露：只取当前决策真正需要的，不全量倾倒，不重复解释。
 
-[CHARACTER] 角色卡（~/RP-agent/character/*.md）= 静态角色定义。
-仅在以下情况调用 Character Agent（subagent.py）：角色需独立反应/行动且可能影响世界；关键情绪/决策节点；玩家直接与其互动、需要角色"本人"的声音。
+[CHARACTER] 角色卡 = ~/RP-agent/character/*.md，静态角色定义。
+仅在以下情况调用 Character Agent subagent.py：角色需独立反应/行动且可能影响世界；关键情绪/决策节点；玩家直接与其互动、需要角色"本人"的声音。
 调用：run `python3 ~/RP-agent/subagent.py --char ~/RP-agent/character/<角色>.md --context '<JSON：当前情境/必要世界事实/GM 要其回应的问题>' [--char-state '<动态状态>']`
 先调用 → 得局部结果 → GM 裁决是否真实发生 / 是否形成长期事实 → 再决定 State。
 无角色卡的在场 NPC / 环境由 GM 直接处理，不调用。
 
-[WORLD_BOOK] World Book（~/RP-agent/worldbook/*.md）= 静态世界资源，按需读取。
+[WORLD_BOOK] World Book = ~/RP-agent/worldbook/*.md，静态世界资源，按需读取。
 
 [RP] RP 生命周期由你用 run 承担。工作区：`~/RP-agent/rp/<RP>/{State,History,Summary}.md`。
-新建（玩家要开始新故事）→ 建三件套骨架并登记 rp/目录.md → 开场；恢复（玩家要继续/回到某故事）→ 读其 State.md（及必要 History / Summary）装载背景；列出 → `ls ~/RP-agent/rp/`。
+新建：玩家要开始新故事 → 建三件套骨架并登记 rp/目录.md → 开场；恢复：玩家要继续或回到某故事 → 读其 State.md 及必要 History / Summary 装载背景；列出：`ls ~/RP-agent/rp/`。
 活跃 RP 由你根据对话确定；涉及某 RP 的事实先 run 读其 State.md，不凭记忆猜。
 
-[RUN] run 是你唯一的外部工具（执行终端命令）。
+[RUN] run 是你唯一的外部工具，执行终端命令。
 要信息或要动作 → run → 得真实结果 → 再判断；禁止还没执行就假定结果；有依赖的动作分顺序执行；失败 → 读真实错误 → 判断原因 → 修正 → 重试，不得把失败当成功。
 
-[MTP] MTP = 下一轮剧情预计算（你可用的一项能力，不是本轮事实，也不参与本轮世界决策）。
+[MTP] MTP = 下一轮剧情预计算，你可用的一项能力。
 - 本轮玩家行动 / 选项确定后立即触发；触发后不等待，不阻塞当前主流程。
 - 当前轮照常：GM 完成本轮世界处理 → Story → 输出；MTP 不改变本轮时序。
 - MTP 预测不是事实：不得写入 State、不得直接改变当前世界、不得使你越过正常 Story 流程。
-- 启用时，程序会在真正的玩家输入正上方给出当前能力状态（形如 `[MTP] enabled depth=N`）；没有该消息即当前不可用。
+- 启用时，程序会在真正的玩家输入正上方给出当前能力状态，形如 `[MTP] enabled depth=N`；没有该消息即当前不可用。
 
 [STORY_HANDOFF] 本轮最终输出 = 交给 Story Agent 的世界交接，不是 Story 正文。
-收束顺序：确认本轮世界变化 → 确有长期变化才用 run 写 State.md（读旧 State → 合并变更 → 覆盖）；确有值得保持连续性的重要交互才用 run 追加 History.md；无变化就不写。
-然后必须用 run 把本轮 Story Context 写入固定路径 `~/.cache/rp-agent/context/story-context.md`（heredoc 覆盖写）。写文件是真实动作：必须 run 并等待真实返回，不得只"想"不写。
+收束顺序：确认本轮世界变化 → 确有长期变化才用 run 写 State.md，读旧 State → 合并变更 → 覆盖；确有值得保持连续性的重要交互才用 run 追加 History.md；无变化就不写。
+然后必须用 run 把本轮 Story Context 写入固定路径 `~/.cache/rp-agent/context/story-context.md`，用 heredoc 覆盖写。写文件是真实动作：必须 run 并等待真实返回，不得只"想"不写。
 写完用一句话说明本轮交接完成，不要自己写 Story 正文。
-Story Context 只写本轮写作真正需要的块（不需的整块不写，不写"无 / N/A / 暂无"占位，不把整个仓库全量塞入）：
+Story Context 只写本轮写作真正需要的块，不需的整块不写，不写"无 / N/A / 暂无"占位，不把整个仓库全量塞入：
   # Current Input          当前玩家行为
-  # Confirmed State        相关已确认 State（抄录必要条目）
+  # Confirmed State        相关已确认 State，抄录必要条目
   # Confirmed World Changes 本轮已经确认的世界变化
-  # Necessary History      必要历史（如尾部若干条）
-  # Necessary Summary      必要历史压缩（如有）
-  # Relevant Characters    相关角色卡关键信息（如需要）
-  # Relevant World Book    相关世界书信息（如需要）
-  # Character Agent Results 本轮 Character Agent 输出（如有）
+  # Necessary History      必要历史，如尾部若干条
+  # Necessary Summary      必要历史压缩
+  # Relevant Characters    相关角色卡关键信息
+  # Relevant World Book    相关世界书信息
+  # Character Agent Results 本轮 Character Agent 输出
   # Story Task             本轮叙事任务 / 场景与连续性要求
 
-[OPTIONS] 玩家交互选项（属于你，不属于 Story Agent）。
+[OPTIONS] 玩家交互选项属于你，不属于 Story Agent。
 依当前已确认世界状态判断是否存在值得呈现的行动分叉：有则给少量清晰选项；无则不提供。
 - 选项只是建议：不是已发生事实、不是 Canon、不代表玩家已经选择、不代表世界已经发生。
 - 不强制每轮生成；0～3 条；不为凑数制造无意义选项；玩家始终可自由输入其他行动。
-需要时在本轮 Story Context 文件末尾追加一个块（不需要则整块不写）：
+需要时在本轮 Story Context 文件末尾追加一个块，不需要则整块不写：
   # Player Options
   1. ……
   2. ……
 
-[SUMMARY] 当输入是压缩请求（`[总结所有]` / Ctrl+X 压缩）时，你在同一个 SYSTEM 下执行压缩任务，不切换任何设定。
+[SUMMARY] 当输入是压缩请求 `[总结所有]` 或 Ctrl+X 压缩时，你在同一个 SYSTEM 下执行压缩任务，不切换任何设定。
 只保留世界连续性所需的确认事实；压缩历史；不把推测写成事实；不替代 State；不写 Story、不调 run、不裁决世界。
 输出纯背景正文：无解释、无标题、无格式。"""
 
@@ -614,10 +614,6 @@ def _inject_mtp_status(ctx):
     return ctx[:idx] + [{"role": "user", "content": st}] + ctx[idx:]
 
 
-def _norm_text(t):
-    return "\n".join(line.rstrip() for line in (t or "").strip().splitlines())
-
-
 def _safe_name(name):
     return re.sub(r"[^0-9A-Za-z_\-\u4e00-\u9fa5]", "_", name or "") or "rp"
 
@@ -633,7 +629,7 @@ def _mtp_log(msg):
 
 _MTP_THREAD = {"t": None}
 
-# —— MTP 分支资产（程序侧；只拼进分支 Context，永不进 GM Prompt）——
+
 MTP_BRANCH_RUNTIME = """# MTP Branch Directive — 下一轮候选（预测，不是事实）
 
 [MODE] 基于以上已确认的世界，写出一个"下一轮可能发生"的候选。
@@ -660,9 +656,10 @@ def _state_fingerprint():
     if not os.path.exists(sp):
         return ""
     try:
-        return hashlib.sha256(_norm_text(open(sp, encoding="utf-8").read()).encode("utf-8")).hexdigest()
+        t = open(sp, encoding="utf-8").read()
     except OSError:
         return ""
+    return hashlib.sha256("\n".join(l.rstrip() for l in t.strip().splitlines()).encode("utf-8")).hexdigest()
 
 
 def _mtp_cache():
@@ -730,11 +727,6 @@ def _mtp_lookup(q):
     return None
 
 
-def _mtp_branch_ctx(ctx, directive):
-    """分支 Context = 本轮 Story Context + 程序侧走向指令。"""
-    return ctx.rstrip() + "\n\n" + (MTP_BRANCH_RUNTIME % directive)
-
-
 def _story_once(ctx_file):
     """调用一次普通 story.py 写作（不含任何分支语义）。失败抛异常。"""
     proc = subprocess.run([sys.executable, STORY_PY, "--context", "@" + ctx_file],
@@ -772,7 +764,7 @@ def _schedule_mtp(ctx):
             for bid, directive in spec:
                 fp = os.path.join(MTP_CTX_DIR, "branch-%s-%s.md" % (cache_id, bid))
                 with open(fp, "w", encoding="utf-8") as f:
-                    f.write(_mtp_branch_ctx(ctx, directive))
+                    f.write(ctx.rstrip() + "\n\n" + (MTP_BRANCH_RUNTIME % directive))
                 files.append((bid, directive, fp))
             got = {}
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(files)) as ex:
@@ -870,13 +862,7 @@ def _split_options(ctx):
 
 def _print_options(opts):
     """展示显式玩家选项（仅建议，非 Canon；0～3 条）。无有效内容则不输出。"""
-    t = (opts or "").strip()
-    if t.startswith("```"):
-        parts = t.split("```")
-        if len(parts) >= 2:
-            t = parts[1]
-    lines = [l.strip() for l in t.splitlines()
-             if l.strip() and l.strip().rstrip(".。") not in ("无", "None", "none", "-", "1")]
+    lines = [l.strip() for l in (opts or "").splitlines() if l.strip()]
     if not lines:
         return
     _story_log("\n[可选行动]\n" + "".join("  " + l + "\n" for l in lines[:3]))
@@ -909,7 +895,7 @@ def _render_story(handoff=""):
                 f.write(ctx)
         except OSError:
             pass
-        # 本轮玩家行动/选项已确定 → 立即触发下一轮预计算（后台线程，不阻塞本轮 Story）
+
         _schedule_mtp(ctx)
         hit = _session.pop("mtp_hit", None)
         if hit and hit.get("story"):
@@ -956,13 +942,6 @@ def _render_story(handoff=""):
     finally:
         _clear_story_ctx()
 
-
-def _print_story(txt):
-    _story_log("\n" + "─" * 40 + "\n" + txt + "\n")
-    print("\n" + "─" * 40)
-    print(txt)
-    print("─" * 40)
-
 def main():
     global API_KEY
     if not API_KEY:
@@ -987,7 +966,7 @@ def main():
                     _session["mem"] = mem[last_u:]
                     _session["need_compress"] = False
                     print("[已压缩]", flush=True)
-        _story_log("\n你> ")          # 剧情窗的 你> 由这里产生：正是 agent 开始等输入的瞬间
+        _story_log("\n你> ")
         try:
             raw = input("\n你> ")
         except _StopLoop:
