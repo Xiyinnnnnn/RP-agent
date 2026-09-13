@@ -469,6 +469,19 @@ MTP candidate != State
 MTP candidate != History
 ```
 
+```text
+GM-FACING (只两件)
+  SYSTEM     = capability semantics (next-turn precompute, prediction != fact)
+  STATUS_MSG = "[MTP] / enabled / depth=N"  ONLY when enabled
+               position = directly above the real player input (user msg n-1)
+
+TRIGGER
+  after this round's player action/options are fixed
+  fire-and-forget (no wait, no main-path blocking)
+  no options fixed => no trigger
+  MTP never changes this round's GM -> Story order
+```
+
 ---
 
 ## 14. FILE CONTRACT
@@ -683,6 +696,9 @@ I20 cache failure => ordinary path
 I21 MTP failure != main-path failure
 I22 unnecessary information => do not expose
 I23 no new architecture without measured benefit
+I24 ONE SYSTEM: GM / Summary / special tasks share the same SYSTEM
+    (task is selected by input, never by swapping SYSTEM)
+I25 MTP status is exposed only when enabled, directly above the real input
 ```
 
 ---
