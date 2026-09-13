@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+<rect width="1600" height="980" fill="#090c10"/>
+<style>
+text{font-family:monospace;fill:#e6edf3}.t{font-size:24px;font-weight:700}.s{font-size:18px}.xs{font-size:14px}.box{fill:#10161d;stroke:#657487;stroke-width:2}.w{fill:#10222b;stroke:#63d8ff;stroke-width:3}.g{fill:#18221b;stroke:#9be48e;stroke-width:3}.p{fill:#1d1830;stroke:#b7a1ff;stroke-width:3}.gold{fill:#292113;stroke:#ffd36b;stroke-width:3}.red{stroke:#ff5d68;stroke-width:4;stroke-dasharray:10 9;fill:none}.c{stroke:#63d8ff;stroke-width:4;fill:none}.pg{stroke:#b7a1ff;stroke-width:4;fill:none}.gg{stroke:#9be48e;stroke-width:4;fill:none}.au{stroke:#ffd36b;stroke-width:4;fill:none}.muted{fill:#929dab}.axis{stroke:#5f6b78;stroke-width:2;fill:none}.curve1{stroke:#63d8ff;stroke-width:4;fill:none}.curve2{stroke:#b7a1ff;stroke-width:4;fill:none}.curve3{stroke:#9be48e;stroke-width:4;fill:none}.grid{stroke:#1c252f;stroke-width:1}.dash{stroke-dasharray:7 7}.block{fill:#2b1116;stroke:#ff5d68;stroke-width:2}.hi{fill:#ffd36b}.soft{opacity:.55}
+@keyframes move{from{offset-distance:0%}to{offset-distance:100%}}.pkt{width:10px;height:10px;background:#ffd36b;position:absolute;offset-rotate:0;animation:move 3.8s linear infinite}.pkt2{animation-delay:1.2s}.pkt3{animation-delay:2.2s}
+</style>
+<defs>
+<marker id="aC" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0L9,3L0,6Z" fill="#63d8ff"/></marker>
+<marker id="aP" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0L9,3L0,6Z" fill="#b7a1ff"/></marker>
+<marker id="aG" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0L9,3L0,6Z" fill="#9be48e"/></marker>
+<marker id="aA" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0L9,3L0,6Z" fill="#ffd36b"/></marker>
+</defs>
+
+<!-- LEFT: topology -->
+<text x="45" y="50" class="t">RP-agent</text>
+<text x="45" y="78" class="s muted">连续运营 × 单次生成</text>
+<rect x="35" y="105" width="955" height="650" class="box"/>
+<text x="60" y="140" class="s">信息控制拓扑</text>
+
+<!-- World loop -->
+<rect x="70" y="185" width="250" height="190" class="w"/>
+<text x="92" y="220" class="t">World Xₜ</text>
+<text x="92" y="250" class="s">State</text>
+<text x="92" y="276" class="s">History / Summary</text>
+<text x="92" y="302" class="s">Character / WorldBook</text>
+<text x="92" y="328" class="s">真实结果 / 输入</text>
+<path d="M195 375 C185 445 110 465 110 400" class="c dash" marker-end="url(#aC)"/>
+<text x="120" y="455" class="xs">Xₜ₊₁=T(Xₜ,Iₜ)</text>
+<path d="M320 260 C390 240 420 205 470 205" class="c" marker-end="url(#aC)"/>
+
+<!-- projections -->
+<path d="M320 235 L470 235" class="pg" marker-end="url(#aP)"/>
+<rect x="470" y="185" width="170" height="105" class="p"/>
+<text x="493" y="220" class="t">πq</text>
+<text x="493" y="248" class="s">最小充分投影</text>
+<text x="493" y="274" class="xs">Kq⊂World</text>
+
+<rect x="470" y="335" width="170" height="105" class="g"/>
+<text x="493" y="370" class="t">πc</text>
+<text x="493" y="398" class="s">角色局部投影</text>
+<text x="493" y="424" class="xs">Kc⊂World</text>
+<path d="M320 330 L470 370" class="gg" marker-end="url(#aG)"/>
+
+<!-- Story -->
+<rect x="690" y="175" width="245" height="130" class="p"/>
+<text x="715" y="210" class="t">Story</text>
+<text x="715" y="240" class="s">Yₜ=Fθ(A,Kq)</text>
+<text x="715" y="268" class="xs">1×LLM → 结束</text>
+<path d="M640 235 L690 235" class="pg" marker-end="url(#aP)"/>
+<path d="M560 160 L730 175" class="pg" marker-end="url(#aP)"/>
+
+<!-- Character -->
+<rect x="690" y="345" width="245" height="130" class="g"/>
+<text x="715" y="380" class="t">Character</text>
+<text x="715" y="410" class="s">Zₜ=Cθ(Kc)</text>
+<text x="715" y="438" class="xs">局部判断 ≠ 世界事实</text>
+<path d="M640 390 L690 405" class="gg" marker-end="url(#aG)"/>
+
+<!-- GM Canon State -->
+<rect x="735" y="535" width="170" height="85" class="gold"/>
+<text x="760" y="570" class="t">GM</text><text x="760" y="597" class="xs">Confirm</text>
+<path d="M812 475 L812 535" class="au" marker-end="url(#aA)"/>
+<rect x="530" y="535" width="165" height="85" class="gold"/>
+<text x="555" y="570" class="t">Canon</text><text x="555" y="597" class="xs">已确认事实</text>
+<path d="M735 578 L695 578" class="au" marker-end="url(#aA)"/>
+<rect x="315" y="535" width="165" height="85" class="w"/>
+<text x="340" y="570" class="t">State</text><text x="340" y="597" class="xs">长期事实</text>
+<path d="M530 578 L480 578" class="au" marker-end="url(#aA)"/>
+<path d="M315 535 C270 485 250 425 250 375" class="au" marker-end="url(#aA)"/>
+
+<!-- invalid -->
+<path d="M935 240 C980 280 975 500 870 550" class="red"/>
+<path d="M935 410 C955 455 950 525 870 560" class="red"/>
+<text x="875" y="328" class="xs" fill="#ff5d68">Story ↛ State</text>
+<text x="858" y="505" class="xs" fill="#ff5d68">Character ↛ State</text>
+<rect x="820" y="625" width="120" height="48" class="block"/><text x="842" y="655" class="s" fill="#ff5d68">Beat ↛ Event</text>
+<rect x="570" y="625" width="130" height="48" class="block"/><text x="592" y="655" class="s" fill="#ff5d68">MTP ↛ State</text>
+
+<!-- contracts -->
+<text x="70" y="705" class="xs">持久：State / History / Summary</text>
+<text x="380" y="705" class="xs">瞬时：Context = 当前工作集</text>
+<text x="670" y="705" class="xs">Story：无长期记忆</text>
+
+<!-- RIGHT: quality mechanism -->
+<rect x="1020" y="105" width="545" height="650" class="box"/>
+<text x="1045" y="140" class="s">输入 → 输出</text>
+<text x="1045" y="176" class="xs">Y ~ P(Y | A,K)</text>
+<text x="1045" y="201" class="xs">Qstory ≤ Capacity(A,K,Model)</text>
+
+<!-- context objective -->
+<rect x="1045" y="225" width="500" height="145" class="soft" fill="#11161d" stroke="#54616f" stroke-width="2"/>
+<text x="1065" y="255" class="xs">J(K)=Q(K)-λN(K)-μC(K)-νL(K)-ρM(K)</text>
+<text x="1065" y="283" class="xs">L(K)=0,  M(K)=0</text>
+<text x="1065" y="311" class="xs">K*=argmax J(K)</text>
+<text x="1065" y="339" class="xs">min |K|  s.t.  Required⊆K</text>
+
+<!-- distribution chart -->
+<text x="1045" y="405" class="s">输出分布</text>
+<line x1="1085" y1="680" x2="1515" y2="680" class="axis"/>
+<line x1="1085" y1="455" x2="1085" y2="680" class="axis"/>
+<text x="1070" y="470" class="xs">密度</text><text x="1470" y="708" class="xs">质量 Q</text>
+<!-- bad distribution -->
+<path d="M1090 678 C1125 645 1135 570 1180 530 C1220 495 1270 500 1320 560 C1365 610 1405 645 1505 670" class="curve1"/>
+<text x="1090" y="515" class="xs">原始 / 杂讯较多</text>
+<!-- engineered distribution -->
+<path d="M1090 680 C1160 665 1200 610 1255 545 C1300 492 1350 490 1390 520 C1430 550 1455 615 1505 663" class="curve2"/>
+<line x1="1195" y1="455" x2="1195" y2="680" stroke="#ff5d68" stroke-width="2" stroke-dasharray="6 7"/>
+<line x1="1315" y1="455" x2="1315" y2="680" stroke="#ffd36b" stroke-width="2" stroke-dasharray="6 7"/>
+<text x="1130" y="500" class="xs" fill="#ff5d68">左尾</text>
+<text x="1275" y="500" class="xs" fill="#ffd36b">中位数</text>
+<text x="1045" y="730" class="xs">有效 Context → 左尾收缩</text>
+<text x="1280" y="730" class="xs">Qmin ↑  ·  Qmedian ↑</text>
+
+<!-- plateau -->
+<rect x="1045" y="770" width="500" height="165" class="box"/>
+<text x="1065" y="802" class="s">工程平台期</text>
+<line x1="1080" y1="905" x2="1510" y2="905" class="axis"/>
+<line x1="1080" y1="825" x2="1080" y2="905" class="axis"/>
+<path d="M1090 895 C1170 875 1230 855 1300 840 C1360 830 1435 828 1505 827" class="curve3"/>
+<text x="1090" y="925" class="xs">Context / Prompt 工程量 →</text>
+<text x="1320" y="854" class="xs">ΔQ/ΔC → 0</text>
+<text x="1065" y="850" class="xs">有效信息</text>
+<text x="1065" y="885" class="xs">≠ 更多信息</text>
+
+<!-- bottom thesis -->
+<rect x="35" y="785" width="955" height="150" class="gold"/>
+<text x="60" y="820" class="t">核心</text>
+<text x="60" y="852" class="s">连续运营：Xₜ → Xₜ₊₁，校正长期状态与漂移</text>
+<text x="60" y="881" class="s">单次 Story：Kₜ → Yₜ，消费当前最小充分输入</text>
+<text x="60" y="910" class="s">解耦：运营不写 Story；Story 不运营世界；但更好的 K → 更稳定的 Y</text>
+
+<!-- small mathematical summary -->
+<text x="1025" y="965" class="xs">WORLD：what happened    STORY：how to write it    GM：what is true</text>
+</svg>
